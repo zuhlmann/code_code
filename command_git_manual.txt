@@ -1,0 +1,59 @@
+$ . ~/.bashrc   #this will run bashrc (i.e. if you have made changes and want to implement them)
+$ ll (like ls but easier to read)
+$ man [ls]   #manuscript for command
+$ info [ls]  #more info for command
+$ clear     #clears recent output_frequency
+$ which [var]     #location of given command or program
+$ printenv        # list all env variables
+                  #*check here to find location of something installed
+$ APT  #Advanced Packaging System: software install/upgrade/degrade management system which interacts
+       #with Debian linux
+$ sudo apt install python3-tk   #ex of how to use
+$ pip install numpy --no-cache   #not quite sure, but will install <program> (numpy in this case) directly from httml, not from cache which could
+  #include past installs
+$ tail -f <filename>        #type in log directory go get last output logs ('f' = follow)
+$ ncdump -h <filename>      #show header info
+$ ls -R|grep "./nc$"    #searching recursively for file_type
+$ source ~/.bash_profile    #reads in bash profile config
+$ . ~/.bashrc               #similiar as previous but for bashrc.
+$ cp -a [source] [dest]
+$ cp -r --parents [source] [dest]     #copy folder contents to new destination
+ctl z     #pauses a process
+$ kill %1     #kills running job
+$ rm -rf <dirname>      --> this is from the wd with directory.  r = recursively f = ignore nonexistent files
+$ printenv  --> prints environmental variable
+
+GIT
+$ git log --abbrev-commit --pretty=oneline    #abbr hash to 7 or more digits, makes pretty
+$ git diff [fname]    #for unstaged
+$ git diff --cached [fname]     #with staging
+
+SCP and SSH
+$ scp -i zachKey.pem -r path/to/file/being/copied ubuntu@10.200.28.71:/home/ubuntu/data
+   ---> Note this is starting on computer and copying to remote server.
+
+KEYBOARD SHORCUTS
+ctl + a     #beginning of line
+ctl + e     #end of line
+cmd + n     #new window
+cmd + t     #new tab
+cmd LEFT/RIGHT arrow      #cycle betw terminal windows
+
+AWSM TRICKS
+inicheck <configfilename> -w
+inicheck <configfilename> -w -m <modulename i.e. awsm>
+>>>from awsm.interface.initialize_model import *
+    #this imports functions from initialize_model.py
+python -m unittest discover -v
+    #this will become apparent in testing
+
+RUNNING test case
+if maxus needed (for example running test case from computer, not docker):
+gen_maxus --window=30 --out_maxus=/home/ubuntu/data/awsm_test_cases/brb/topo/maxus.nc ./topo.nc
+$ requant -b 8 tau.ipw > tau8.ipw     --> this example requantizations (i.e. going from 12 bit in this case to 8 bits)
+                                          note that '8' could be '16'.  Also the '>' "pipes" to a newly created file
+                                          we used this to prepare data for test cases
+
+GDAL
+$ gdalinfo NETCDF:"topo_RME.nc":veg_type   --->  i.e. $gdalinfo NETCDF:"<file name>":<short name>
+            ---> this will give LOTS of details on band
