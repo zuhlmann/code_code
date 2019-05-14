@@ -21,16 +21,25 @@ $ cp -r --parents [source] [dest]     #copy folder contents to new destination
 ctl z     #pauses a process
 $ kill %1     #kills running job
 $ rm -rf <dirname>      --> this is from the wd with directory.  r = recursively f = ignore nonexistent files
+$ sudo rm <file>  or  $ sudo rm -rf <dir>   --if permission denied with rm (i.e. in Docker)
 $ printenv  --> prints environmental variable
+$ history  ---> more concise history of commands
+$ cd -    ---> returns to previous directory
 
 GIT
 $ git log --abbrev-commit --pretty=oneline    #abbr hash to 7 or more digits, makes pretty
 $ git diff [fname]    #for unstaged
 $ git diff --cached [fname]     #with staging
+$ git config --global alias.co checkout   ---> this will add to gitalias.  i.e. co = checkout
 
 SCP and SSH
 $ scp -i zachKey.pem -r path/to/file/being/copied ubuntu@10.200.28.71:/home/ubuntu/data
    ---> Note this is starting on computer and copying to remote server.
+exiting ssh session:  $ logout
+1) when scp from remote to local, CALL scp command from local: i.e. ~/home/Desktop$ scp -i ~/zachKey.pem
+      ubuntu@10.200.28.71:/home/ubuntu/data3Tb/zenodo_WRR_data/wy2013/metadata.csv /home/zachuhlmann/Desktop/
+2) also note that if scp to directory on remote server (data3Tb), ownership cannot be root root (check with ll)
+    if it is, do:  $ sudo chown -R ubuntu:ubuntu data3Tb for example ---> then, $ scp -i zachKey.pem...
 
 KEYBOARD SHORCUTS
 ctl + a     #beginning of line
@@ -54,6 +63,33 @@ $ requant -b 8 tau.ipw > tau8.ipw     --> this example requantizations (i.e. goi
                                           note that '8' could be '16'.  Also the '>' "pipes" to a newly created file
                                           we used this to prepare data for test cases
 
+ANDREWS WRR
+$ docker images  -->> this will show which docker images are available
+From the cluster (or wherever).
+In remote session (in this case): 1) mkdir data 2) docker pull usdaarsnwrc/wrr_2018_hedrick (Note: do this in home, not DATA)
+3) docker run -v /home/ubuntu/data:/data -it usdaarsnwrc/wrr_2018_hedrick   --> this will download the docker images
+
+DOCKER
+$ docker ps   ----> shows containers
+$ docker images  ----> shows the images
+$ docker inspect <object id>
+
 GDAL
 $ gdalinfo NETCDF:"topo_RME.nc":veg_type   --->  i.e. $gdalinfo NETCDF:"<file name>":<short name>
             ---> this will give LOTS of details on band
+
+VI
+: CTL D   --->  lists commands
+
+APT-GET
+- debian uses $ dpkg, a packaging system.  This is a way to provide programs and applications for installation.
+  that way you don't have to build from source code.
+- $ APT (Advanced Packageing Tool) command line tool to interact with this packaging system.
+$ apt-get update   ---> updates package database to reflect current packages.
+                        Simply finds packages status and classifies as current or old
+$ apt-get upgrade  -->  this upgrades packages from $ apt-get update which are found to be outdated
+    $ apt-get upgrade <package name>   ---> updates specified packages
+$ apt-get update && apt-get upgrade -y   --> combo of the two previous commands
+$ apt-cache search <search term>  search for packages (without exact name?)
+$ apt-cache pkgnames <search term> if you know specific package name
+$ apt-cache showpkg <package_name>   --> once you know name, find version and dependency gdalinfo
