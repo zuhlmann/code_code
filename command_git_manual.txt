@@ -19,12 +19,15 @@ $ . ~/.bashrc               #similiar as previous but for bashrc.
 $ cp -a [source] [dest]
 $ cp -r --parents [source] [dest]     #copy folder contents to new destination
 ctl z     #pauses a process
-$ kill %1     #kills running job
+1) $ ^ Z  2) $ kill %1     #kills running job
 $ rm -rf <dirname>      --> this is from the wd with directory.  r = recursively f = ignore nonexistent files
 $ sudo rm <file>  or  $ sudo rm -rf <dir>   --if permission denied with rm (i.e. in Docker)
 $ printenv  --> prints environmental variable
 $ history  ---> more concise history of commands
 $ cd -    ---> returns to previous directory
+$ job   ----> shows running jobs
+$ top   -----> shows running jobs in more of a task manager style
+$ nohup awsm  <dir> &    ---->this will allow a remote run to detach and remaing running when you ssh out.
 
 GIT
 $ git log --abbrev-commit --pretty=oneline    #abbr hash to 7 or more digits, makes pretty
@@ -67,7 +70,17 @@ ANDREWS WRR
 $ docker images  -->> this will show which docker images are available
 From the cluster (or wherever).
 In remote session (in this case): 1) mkdir data 2) docker pull usdaarsnwrc/wrr_2018_hedrick (Note: do this in home, not DATA)
-3) docker run -v /home/ubuntu/data:/data -it usdaarsnwrc/wrr_2018_hedrick   --> this will download the docker images
+3) docker run -v /home/ubuntu/data:/data -it usdaarsnwrc/wrr_2018_hedrick   --> this will open the docker images
+
+    II.  Using the newer awsm
+      $ docker run -v /data:/data -it --entrypoint /bin/bash usdaarsnwrc/awsm:0.9.15
+
+      **Loading Jupyter
+        $ubuntu@ubuntu -server:  docker system prune -a    ---> prune all instances
+          Note: one image (usdaarsnwrc/wrr_2018_hedrick) didn't get pruned, so:
+          $ docker kill <Container ID>
+          $ docker system prune -a
+          
 
 DOCKER
 $ docker ps   ----> shows containers

@@ -56,8 +56,10 @@ class IPW_to_netCDF():
         s.variables['x'][:] = x
 
         for idx, vr in enumerate(self.var_list):
-            type_list = ['u1', 'f', 'f', 'f', 'f', 'u1']
-            long_name = ['vegetation type', 'vegetation height', 'vegetation tau', 'vegetation k', 'dem', 'mask']
+            type_list = ['f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f']
+            long_name = ['predicted snow depth (m)', 'predicted avg. snow density (kg/m^3)', 'predicted specific mass (kg/m^2)',
+                'predicted avg. liquid water content', 'predicted surface temperature', 'predicted lower layer temperature (C)',
+                'predicted avg. snow temperature (C)', 'lower layer depth (m)', '% liquid h2o saturation']
             s.createVariable(vr, type_list[idx],
                              (dimensions[0], dimensions[1]))
 

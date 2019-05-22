@@ -7,14 +7,24 @@ class Plotables:
     "this does some stuff"
     def cb_readable(self,array,num_ticks):
         ''' this just gives tick marks plotting '''
-        self.array=array
-        self.num_ticks = num_ticks
-        mn = np.amin(self.array)
-        mx = np.amax(self.array)
+        mn = np.amin(array)
+        mx = np.amax(array)
+        #below if elif ensures colorbar tick values are readable.  needs some work.
         if mx-mn<0.1:
-          self.cb_range = np.array([mn, mx])
-        else:
-          self.cb_range = np.linspace(mn*1.1, mx*0.9, self.num_ticks)
+            self.cb_range = np.array([mn, mx])
+        elif 0.9*mx - 1.1*mn < 100*.1:
+            cb_range = np.linspace(mn*1.1, mx*0.9, num_ticks)
+            self.cb_range = self.range_cust(cb_range, 1)
+        elif 0.9*mx - 1.1*mn < 100*.5:
+            cb_range = np.linspace(mn*1.1, mx*0.9, num_ticks)
+            self.cb_range = self.range_cust(cb_range, 1)
+        elif 0.9*mx - 1.1*mn < 100*1:
+            cb_range = np.linspace(mn*1.1, mx*0.9, num_ticks)
+            self.cb_range = self.range_cust(cb_range, 0)
+        elif 0.9*mx - 1.1*mn < 100*10:
+            cb_range = np.linspace(mn*1.1, mx*0.9, num_ticks)
+            self.cb_range = self.range_cust(cb_range, -1)
+    # rd = input('min = {:.2} max = {:2}  \n enter rounding precision as integer  \n ex) -1 = nearest 10, 2 = two decimal places: \n '.format(mn,mx))
     def dist_subP(self, num_subP):
         '''sets distribution of subplot rows and columns based on number of
         subplots'''
@@ -28,7 +38,7 @@ class Plotables:
             if imgs > 1:
                 rw[i] = 3
                 cl[i] = 3
-                imgs = imgs - 1  #counter
+                imgs = imgs - 1  #countergcdf
             else:
                 num_subP = num_subP_t - 9*i
                 if num_subP == 1:
@@ -43,27 +53,12 @@ class Plotables:
             self.row = rw
             self.col = cl
 
-    def plt_getCDF(self, png_str):
-        for i in range(len(self.row)):
-            fig, axs = plt.subplots(nrows = self.row[i], ncols = pltz_obj.col[i], figsize = (6,8), dpi = 180)
-            axs = axs.ravel()
-            for j,axo in enumerate(axs):
-                print(ct_in)
-                if not (pltz_obj.panel_flag + (ct_in == pds) == 2): #funky way of saying BOTH need to be true
-                    print(ct)
-                    temp_daily = gcdf_obj.mat[ct:ct+hd*di,:,:]
-                    time_avg = np.apply_along_axis(np.mean, 0, temp_daily)
-                    pltz_obj.cb_readable(time_avg, 5)
-                    ct += hd*di  #counter used to index
-                    mp = axo.imshow(time_avg)
-                    cbar = fig.colorbar(mp, ax=axo, fraction=0.04, pad=0.04, orientation = 'horizontal',
-                                        extend = 'max', format = '%.1f', ticks = pltz_obj.cb_range)
-                    mp.axes.get_xaxis().set_ticks([])
-                    mp.axes.get_yaxis().set_ticks([])
-                    mp.axes.set_title(gcdf_obj.dt_pds[ct_in])
-                    ct_in += 1
-                else:
-                    pass
-            str = 'brb_2017_3day_panel%r.png' %(i+1)
-            plt.tight_layout()
-            plt.savefig(str, dpi=180)
+    def range_cust(self, np_obj, rd):
+        # ZRU  5/20/19  This needs work.  Just ensure min rounds up and max rounds down
+        np_objT = np_obj   #temp object
+        for i, j in enumerate(np_obj):
+            if rd > 0:
+                np_objT[i] = round(j, rd)
+            elif rd <= 0:
+                np_objT[i] = int(round(j, rd))  # reduce numbers to display in colorbar
+        return np_objT
