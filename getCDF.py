@@ -196,6 +196,7 @@ class GetCDF():
             mat[im[i] + 2,:,:] = mat_t
             spec_mass_all_cells = np.nansum(mat_t)
             acre_ft_diff.append(round(self.basin_conversions(spec_mass_all_cells),2))
+        self.diff_mat_no_trim = mat
         mat = mat[self.trim_to_NA_extent()]
         # hack to reshape trimmed mat.  above step creates a 1d vector of array values
         mat = np.reshape(mat, (self.num_times * 3, self.nrows_trim, self.ncols_trim))
