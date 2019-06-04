@@ -62,3 +62,6 @@ booli = np.where(image!=-9999)
 b1, b2 = min(booli[0]), max(booli[0])
 b3, b4 = min(booli[1]), max(booli[1])
 image_clip = image[b1:b2,b3:b4]
+
+''' FORMATTING '''
+print('the basin area (masked) = {:.1f} acres' .format(gcdf_obj.basin_area))

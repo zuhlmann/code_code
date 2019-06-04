@@ -27,13 +27,13 @@ f_in = '/home/zachuhlmann/projects/Hedrick_WRR_2018/snow.nc'
 var = 'specific_mass'
 # Add mask to gcdf object
 f_in_mask = '/home/zachuhlmann/projects/Hedrick_WRR_2018/tuol_topo_wrr18.nc'
-f_in_hed = '/home/zachuhlmann/projects/Hedrick_WRR_2018/snow_WRR18_2day.nc'
+f_in_hed = '/home/zachuhlmann/projects/Hedrick_WRR_2018/snow_wrr18.nc'
 
 # NEW MODEL
 gcdf_obj = gcdf.GetCDF(f_in, var, '2012-10-01 23:00:00', '2013-01-01 23:00:00', 'd')
 gcdf_obj.mask(f_in_mask) #mask
 # Necessary to init time indices
-gcdf_obj.print_dates(15, 15)
+gcdf_obj.print_dates(26, 7)
 print('Number of observations: {0} \n April 1 index: {1}'.format(gcdf_obj.nobs, gcdf_obj.ids))
 
 # OLD MODEL
@@ -48,15 +48,15 @@ gcdf_obj.get_diff(gcdf_obj_hed)
 # PLOT DIFF ONLY
 # gcdf_obj.plot_diff_simple(2, 'delta_jan to march_1_5_b')
 # PRINT stats
-print('the basin diff is: ', gcdf_obj.acre_feet_delt,  'acre feet')
-print('the basin area (masked) = {:.1f} acres' .format(gcdf_obj.basin_area))
+# print('the basin diff is: ', gcdf_obj.acre_feet_delt,  'acre feet')
+# print('the basin area (masked) = {:.1f} acres' .format(gcdf_obj.basin_area))
 
 
-# # SAVE TO NC: save gdcf_obj.diff_mat[i *3 +2,:,:] to nc to visualize change
-fd_out = '/home/zachuhlmann/projects/Hedrick_WRR_2018'
-fp_dem = '/mnt/snow/blizzard/tuolumne/common_data/topo/tuolx_dem_50m.ipw'
-ipw_nc_obj = ipw_nc.IPW_to_netCDF(fd_out, fp_dem)
-ipw_nc_obj.mat_to_nc(gcdf_obj)
+# # # SAVE TO NC: save gdcf_obj.diff_mat[i *3 +2,:,:] to nc to visualize change
+# fd_out = '/home/zachuhlmann/projects/Hedrick_WRR_2018'
+# fp_dem = '/mnt/snow/blizzard/tuolumne/common_data/topo/tuolx_dem_50m.ipw'
+# ipw_nc_obj = ipw_nc.IPW_to_netCDF(fd_out, fp_dem)
+# ipw_nc_obj.mat_to_nc(gcdf_obj)
 
 
 

@@ -1,8 +1,8 @@
 import h5py
 import pandas as pd
 import numpy as np
-import plotables as pltz
 import matplotlib.pyplot as plt
+import plotables as pltz
 import math
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from snowav.utils.MidpointNormalize import MidpointNormalize
@@ -65,9 +65,9 @@ class GetCDF():
     # incr = increments to select times (days for snow.nc, hours for smrf nc)
         idt = [None] * num_times
         idt = [self.ids + incr * i for i in range(num_times)]  # date indices
-        print('The dates are:')
-        for j in idt:
-            print(self.dt[j])
+        # print('The dates are:')
+        # for j in idt:
+        #     print(self.dt[j])
         self.idt = idt
         self.num_times = num_times
 
@@ -183,6 +183,8 @@ class GetCDF():
         mat = np.empty([3 * num_times, self.nrows, self.ncols])
         im = [None] * num_times
         acre_ft_diff = []
+        acre_ft_diff_norm = []
+        avg_spec_mass_orig = []
         # conv_acre_ft = 0.0328084 *
         for i in range(num_times):
             im[i] = i * 3   #mat index
@@ -195,13 +197,19 @@ class GetCDF():
             mat_t = mat[im[i],:,:] - mat[im[i] +1,:,:]  # difference mat
             mat[im[i] + 2,:,:] = mat_t
             spec_mass_all_cells = np.nansum(mat_t)
+            spec_mass_all_cells_new = np.nansum(mat[im[i],:,:])
+            spec_mass_all_cells_new_avg = np.nanmean(mat[im[i],:,:])
             acre_ft_diff.append(round(self.basin_conversions(spec_mass_all_cells),2))
+            acre_ft_diff_norm.append(round((spec_mass_all_cells / spec_mass_all_cells_new) * 100, 2))
+            avg_spec_mass_orig.append(round(spec_mass_all_cells_new_avg, 2))
         self.diff_mat_no_trim = mat
         mat = mat[self.trim_to_NA_extent()]
         # hack to reshape trimmed mat.  above step creates a 1d vector of array values
         mat = np.reshape(mat, (self.num_times * 3, self.nrows_trim, self.ncols_trim))
         self.diff_mat = mat
         self.acre_feet_delt = acre_ft_diff
+        self.acre_feet_delt_norm = acre_ft_diff_norm
+        self.avg_spec_mass_orig = avg_spec_mass_orig
 
     def plot_diff_simple(self, idi, img_str):
         '''Plots only the delta map in multipanels'''
@@ -281,7 +289,6 @@ class GetCDF():
         # make a boolean of False matching array size
         trim_mat = np.full((len(self.idt) * 3, self.nrows, self.ncols), False, dtype = bool)
         trim_mat[:, mnr:mxr, mnc:mxc] = True  #Add True inside trim extent
-        print('the trim mat shape is:', trim_mat.shape)
         # these will be the dimensions once trim mask is employed
         self.nrows_trim = mxr - mnr
         self.ncols_trim = mxc - mnc

@@ -61,7 +61,7 @@ class IPW_to_netCDF():
     def mat_to_nc(self, gcdf_obj):
         ''' Used to take getCDF object and pull numpy 4d array of diff_mat. '''
         # gcdf_obj = object from getCDF with get_diff() run
-        self.fp_out = os.path.join(self.fd_out, 'snow_delta_WRR18.nc')  #fd = file directory, fp = file path
+        self.fp_out = os.path.join(self.fd_out, 'snow_delta_WRR18_Jan_to_June.nc')  #fd = file directory, fp = file path
         # Get X,Y and Time saved to nc file
         self.idt = gcdf_obj.idt
         print('idt: ', self.idt)
