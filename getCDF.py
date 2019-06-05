@@ -9,7 +9,9 @@ from snowav.utils.MidpointNormalize import MidpointNormalize
 
 class GetCDF():
     """fill this in"""
-    def __init__(self, netCDF, string, obs_start, event_start, nc_time_delt):
+    def __init__(self):
+        pass
+    def init_nc_with_time(self, netCDF, string, obs_start, event_start, nc_time_delt):
     # netCDF = the filepath for netCDF of interest.
     # String = the name of variable that pulls the rasters
     # nc_time_delt  = 'h' for inputs (i.e. precip) and 'd' for ouputs(i.e. specific mass)
@@ -28,12 +30,18 @@ class GetCDF():
         ids = [i for i,x in enumerate(self.dt) if x == event_st]
         self.ids = int(ids[0])
 
-    def mask(self, mask):
+    def get_topo(self, topo):
     # mask = mask.nc for basin
-        mask = h5py.File(mask, 'r')
-        mask = mask['mask']
+        self.topo = h5py.File(topo, 'r')
+        mask = self.topo['mask']
         mask = np.array(mask, dtype = bool)
         self.mask = mask
+        # get nrows and ncols for mask if topo.nc
+        if hasattr(self, 'nrows'):
+            pass
+        else:
+            self.nrows = self.mask.shape[0]
+            self.ncols = self.mask.shape[1]
         #Now get indices to clip excess NAs
         mat = self.mask
         tmp = []
@@ -243,7 +251,7 @@ class GetCDF():
                     pltz_obj.cb_readable(diff_mat, col_lim_type, num_ticks)
                     mp = axo.imshow(diff_mat, cmap = pltz_obj.cmap, norm = MidpointNormalize(midpoint = 0, vmin = pltz_obj.vmin, vmax = pltz_obj.vmax))
                     cbar = fig.colorbar(mp, ax=axo, fraction=0.04, pad=0.04,
-                                        extend = 'max', ticks = pltz_obj.cb_range)
+                            mask = gcdf_obj.mask, extend = 'max', ticks = pltz_obj.cb_range)
                     cbar.ax.tick_params(labelsize = fsize)
                     axo.set_title(self.dt[self.idt[j]], fontsize=fsize+4)
                 elif col_lim_type == 'L':
@@ -287,8 +295,12 @@ class GetCDF():
         # idc indicates extents of basin from mask
         mnr, mxr, mnc, mxc = self.idc[0], self.idc[1], self.idc[2], self.idc[3]
         # make a boolean of False matching array size
-        trim_mat = np.full((len(self.idt) * 3, self.nrows, self.ncols), False, dtype = bool)
-        trim_mat[:, mnr:mxr, mnc:mxc] = True  #Add True inside trim extent
+        if hasattr(self, 'netCDF'):
+            trim_mat = np.full((len(self.idt) * 3, self.nrows, self.ncols), False, dtype = bool)
+            trim_mat[:, mnr:mxr, mnc:mxc] = True  #Add True inside trim extent
+        else:
+            trim_mat = np.full((self.nrows, self.ncols), False, dtype = bool)
+            trim_mat[mnr:mxr, mnc:mxc] = True  #Add True inside trim extent
         # these will be the dimensions once trim mask is employed
         self.nrows_trim = mxr - mnr
         self.ncols_trim = mxc - mnc
