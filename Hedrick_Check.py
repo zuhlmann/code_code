@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import getCDF as gcdf
 
+''' sanity check to make sure topo_wrr18.nc was created properly.  really, why 42s are
+where there should be 41 in vegtype'''
+
 fp_topo = '/home/zachuhlmann/projects/Hedrick_WRR_2018/tuol_topo_wrr18.nc'
 fp_veg_type = '/home/zachuhlmann/projects/zenodo_WRR_data/static_grids/tuolx_vegnlcd_50m.ipw'
 
@@ -12,7 +15,6 @@ gcdf_obj.get_topo(fp_topo)
 ipw_array = ipw.IPW(fp_veg_type).bands[0].data
 ipw_array = ipw_array.astype(np.int8)
 nc_array = np.array(gcdf_obj.topo['veg_type'])
-
 
 # ipw_array[gcdf_obj.mask == False] = np.nan
 ipw_array = np.ma.masked_where(gcdf_obj.mask == False, nc_array)
