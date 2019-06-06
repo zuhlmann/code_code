@@ -226,6 +226,7 @@ class GetCDF():
         fsize = 10  # base font size
         pltz_obj = pltz.Plotables()
         pltz_obj.dist_subP(self.num_times)
+        print('num times = ', self.num_times)
         pltz_obj.marks_colors()
         idd = list(range(idi, idi + self.num_times *3, 3))  #idi picks what to plot (new, old, delta)
         if idi == 2:
@@ -244,14 +245,13 @@ class GetCDF():
         for i in range(len(pltz_obj.row)):
             fig, axs = plt.subplots(nrows = pltz_obj.row[i], ncols = pltz_obj.col[i], figsize = (12,12), dpi = 180)
             axs = axs.ravel()
-            for j,axo in enumerate(axs):
+            for j,axo in enumerate(axs):  #Needs to be fixed HERE! will break if not 4 or multiples of 9. ZRU 6/6/19
                 print(ct*3 + idi)
                 diff_mat = self.diff_mat[ct*3 + idi,:,:]
                 if col_lim_type == 'A':
                     pltz_obj.cb_readable(diff_mat, col_lim_type, num_ticks)
                     mp = axo.imshow(diff_mat, cmap = pltz_obj.cmap, norm = MidpointNormalize(midpoint = 0, vmin = pltz_obj.vmin, vmax = pltz_obj.vmax))
-                    cbar = fig.colorbar(mp, ax=axo, fraction=0.04, pad=0.04,
-                            mask = gcdf_obj.mask, extend = 'max', ticks = pltz_obj.cb_range)
+                    cbar = fig.colorbar(mp, ax=axo, fraction=0.04, pad=0.04, extend = 'max', ticks = pltz_obj.cb_range)
                     cbar.ax.tick_params(labelsize = fsize)
                     axo.set_title(self.dt[self.idt[j]], fontsize=fsize+4)
                 elif col_lim_type == 'L':

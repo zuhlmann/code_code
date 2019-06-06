@@ -2,9 +2,10 @@ import IPW_to_netCDF as ipw_nc
 import matplotlib.pyplot as plt
 from awsm.data.topo import get_topo_stats
 from smrf import ipw
+import numpy as np
 
 # This script utilizes IPW_to_netCDF to write all the topo and veg IPW images to netCDF4
-# ZRU 5/10/2019 
+# ZRU 5/10/2019
 
 # file pointers (mostly)
 fp_veg_height = '/home/zachuhlmann/projects/zenodo_WRR_data/static_grids/tuolx_vegheight_50m.ipw'
@@ -26,12 +27,18 @@ var_data['dem'] = ipw.IPW(fp_dem).bands[0].data
 var_data['mask'] = ipw.IPW(fp_mask).bands[0].data
 var_data['x'] = ts['x']
 var_data['y'] = ts['y']
-# Not quite automated, but it will do
-var_list = ['veg_type', 'veg_height', 'veg_tau', 'veg_k', 'dem', 'mask']
+tmp = var_data['veg_type'].round()
+print('41 ', ((tmp == 41).sum())/(tmp.shape[0]*tmp.shape[1]))
+x = np.where(tmp == 41)
+print(x[1][2])
+print(x[0][2])
 
-fp_out = '/home/zachuhlmann/projects/zenodo_WRR_data/static_grids/topo_RME_WRR18.nc'
-ipw_nc_obj = ipw_nc.IPW_to_netCDF(fp_out, var_data, var_list)
-ipw_nc_obj.write_nc()
+# # Not quite automated, but it will do
+# var_list = ['veg_type', 'veg_height', 'veg_tau', 'veg_k', 'dem', 'mask']
+#
+# fp_out = '/home/zachuhlmann/projects/zenodo_WRR_data/static_grids/tuol_topo_wrr18b.nc'
+# ipw_nc_obj = ipw_nc.IPW_to_netCDF(fp_out, var_data, var_list)
+# ipw_nc_obj.write_nc()
 
 # fig, ax = plt.subplots()
 # im = ax.imshow(class_mat)

@@ -30,14 +30,17 @@ f_in_mask = '/home/zachuhlmann/projects/Hedrick_WRR_2018/tuol_topo_wrr18.nc'
 f_in_hed = '/home/zachuhlmann/projects/Hedrick_WRR_2018/snow_wrr18.nc'
 
 # NEW MODEL
-gcdf_obj = gcdf.GetCDF(f_in, var, '2012-10-01 23:00:00', '2013-01-01 23:00:00', 'd')
-gcdf_obj.mask(f_in_mask) #mask
+gcdf_obj = gcdf.GetCDF()
+gcdf_obj.init_nc_with_time(f_in, var, '2012-10-01 23:00:00', '2013-01-01 23:00:00', 'd')
+gcdf_obj.get_topo(f_in_mask) #mask
 # Necessary to init time indices
-gcdf_obj.print_dates(26, 7)
+gcdf_obj.print_dates(4, 7)  # Keep either at 4 or multiples of 9 if saving plot. --> cont...
+#Need to fix ~line 248 to only loop through number of times, not axs! ZRU 6/6/19
 print('Number of observations: {0} \n April 1 index: {1}'.format(gcdf_obj.nobs, gcdf_obj.ids))
 
 # OLD MODEL
-gcdf_obj_hed = gcdf.GetCDF(f_in_hed, var, '2012-10-01 23:00:00', '2013-01-01 23:00:00', 'd')
+gcdf_obj_hed = gcdf.GetCDF()
+gcdf_obj_hed.init_nc_with_time(f_in_hed, var, '2012-10-01 23:00:00', '2013-01-01 23:00:00', 'd')
 
 # # PLOT 3 PANEL: new, old, new - old
 # gcdf_obj.plot_diff(gcdf_obj_hed)
@@ -45,11 +48,11 @@ gcdf_obj_hed = gcdf.GetCDF(f_in_hed, var, '2012-10-01 23:00:00', '2013-01-01 23:
 # GET and PLOT Diff
 gcdf_obj.get_diff(gcdf_obj_hed)
 
-# PLOT DIFF ONLY
-# gcdf_obj.plot_diff_simple(2, 'delta_jan to march_1_5_b')
-# PRINT stats
-# print('the basin diff is: ', gcdf_obj.acre_feet_delt,  'acre feet')
-# print('the basin area (masked) = {:.1f} acres' .format(gcdf_obj.basin_area))
+#PLOT DIFF ONLY
+gcdf_obj.plot_diff_simple(2, 'delta_jan 3wk_test')
+#PRINT stats
+print('the basin diff is: ', gcdf_obj.acre_feet_delt,  'acre feet')
+print('the basin area (masked) = {:.1f} acres' .format(gcdf_obj.basin_area))
 
 
 # # # SAVE TO NC: save gdcf_obj.diff_mat[i *3 +2,:,:] to nc to visualize change
