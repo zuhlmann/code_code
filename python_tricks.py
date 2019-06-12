@@ -69,3 +69,11 @@ image_clip = image[b1:b2,b3:b4]
 
 ''' FORMATTING '''
 print('the basin area (masked) = {:.1f} acres' .format(gcdf_obj.basin_area))
+
+''' text parsing '''
+# slicing strings
+str = 'run20170510'
+slc = [3, 7, 9, 11]
+date = []
+date = str[slc[0]:slc[1]] + '-' + str[slc[1]:slc[2]] + '-' + str[slc[2]:slc[3]] + ' 00:00:00'
+print(date)

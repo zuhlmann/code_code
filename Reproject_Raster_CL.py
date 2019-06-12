@@ -1,5 +1,5 @@
 import sys, os
-from osgeo import gdal
+# from osgeo import gdal
 # NOte originally used to transform a .e00 veg file (argGIS) ZRU 4/2019
 
 in_file = sys.argv[1]

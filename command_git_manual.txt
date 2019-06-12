@@ -28,6 +28,7 @@ $ cd -    ---> returns to previous directory
 $ job   ----> shows running jobs
 $ top   -----> shows running jobs in more of a task manager style
 $ nohup awsm  <dir> &    ---->this will allow a remote run to detach and remaing running when you ssh out.
+$ inicheck --details 'awsm master' -m smrf awsm
 
 GIT
 $ git log --abbrev-commit --pretty=oneline    #abbr hash to 7 or more digits, makes pretty
@@ -44,7 +45,7 @@ exiting ssh session:  $ logout
 2) also note that if scp to directory on remote server (data3Tb), ownership cannot be root root (check with ll)
     if it is, do:  $ sudo chown -R ubuntu:ubuntu data3Tb for example ---> then, $ scp -i zachKey.pem...
 
-KEYBOARD SHORCUTS
+KEYBOARD SHORCUTSt
 ctl + a     #beginning of line
 ctl + e     #end of line
 cmd + n     #new window
@@ -80,12 +81,7 @@ In remote session (in this case): 1) mkdir data 2) docker pull usdaarsnwrc/wrr_2
           Note: one image (usdaarsnwrc/wrr_2018_hedrick) didn't get pruned, so:
           $ docker kill <Container ID>
           $ docker system prune -a
-          
 
-DOCKER
-$ docker ps   ----> shows containers
-$ docker images  ----> shows the images
-$ docker inspect <object id>
 
 GDAL
 $ gdalinfo NETCDF:"topo_RME.nc":veg_type   --->  i.e. $gdalinfo NETCDF:"<file name>":<short name>
@@ -106,3 +102,15 @@ $ apt-get update && apt-get upgrade -y   --> combo of the two previous commands
 $ apt-cache search <search term>  search for packages (without exact name?)
 $ apt-cache pkgnames <search term> if you know specific package name
 $ apt-cache showpkg <package_name>   --> once you know name, find version and dependency gdalinfo
+
+DOCKER COMMANDS (from Raghav Pal)
+$ docker images --help  # good reference on docker images
+$ docker pull <image name>   # use to get image
+$ docker ps     #shows info on containers
+$ docker ps   ----> shows containers
+$ docker images  ----> shows the images
+$ docker inspect <object id>
+$ docker stats   #stats on where mounted and whatever
+$ docker system df  #cpu usage
+$ docker system prune  #cleans up unused images
+$ docker stop <container id>  #stops a container

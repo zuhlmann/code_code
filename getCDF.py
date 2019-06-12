@@ -47,24 +47,24 @@ class GetCDF():
         tmp = []
         for i in range(self.nrows):
             if any(mat[i,:] == True):
-                idt = i
+                id = i
                 break
-        tmp.append(idt)
+        tmp.append(id)
         for i in range(self.nrows-1, 0, -1):  #-1 because of indexing...
             if any(mat[i,:] == True):
-                idt = i
+                id = i
                 break
-        tmp.append(idt)
+        tmp.append(id)
         for i in range(self.ncols):
             if any(mat[:,i] == True):
-                idt = i
+                id = i
                 break
-        tmp.append(idt)
+        tmp.append(id)
         for i in range(self.ncols-1, 0, -1):  #-1 because of indexing...
             if any(mat[:,i] == True):
-                idt = i
+                id = i
                 break
-        tmp.append(idt)
+        tmp.append(id)
         self.idc = tmp   #idx to clip [min_row, max_row, min_col, max_col]
     def print_dates(self, num_times, incr):
         ''' Note: this method necessary to get self.idt for use in rest of class '''
@@ -157,7 +157,7 @@ class GetCDF():
             mat_t[self.mask == False] = np.nan
             mat[im[i],:,:] = mat_t
             mat_t = gcdf_obj_comp.netCDF[gcdf_obj_comp.string][self.idt[i]]
-            mat_t[self.mask == False] = np.nan
+            mat_t[self.mask == False] = np.nanplot_diff
             mat[im[i] + 1,:,:] = mat_t
             mat[im[i] + 2,:,:] = mat[i,:,:] - mat[i +1,:,:]  # difference mat
         pltz_obj = pltz.Plotables()
@@ -219,6 +219,15 @@ class GetCDF():
         self.acre_feet_delt_norm = acre_ft_diff_norm
         self.avg_spec_mass_orig = avg_spec_mass_orig
 
+        time_list = []
+        [time_list.append(self.dt[idt]) for idt in self.idt]
+        df = pd.DataFrame({'Date': time_list[:], 'Basin Avg SWE (mm)': self.avg_spec_mass_orig,
+            'Basin Change (acre_ft)': self.acre_feet_delt, 'Basin Change (%)': self.acre_feet_delt_norm})
+        df = df[['Date', 'Basin Avg SWE (mm)', 'Basin Change (acre_ft)', 'Basin Change (%)']]
+        # df = df.set_index('Date')
+        self.df = df
+
+
     def plot_diff_simple(self, idi, img_str):
         '''Plots only the delta map in multipanels'''
     # idi options:  2 = diff, 1 = old, 0 = new  InDexIndex (idi)
@@ -246,23 +255,25 @@ class GetCDF():
             fig, axs = plt.subplots(nrows = pltz_obj.row[i], ncols = pltz_obj.col[i], figsize = (12,12), dpi = 180)
             axs = axs.ravel()
             for j,axo in enumerate(axs):  #Needs to be fixed HERE! will break if not 4 or multiples of 9. ZRU 6/6/19
-                print(ct*3 + idi)
-                diff_mat = self.diff_mat[ct*3 + idi,:,:]
-                if col_lim_type == 'A':
-                    pltz_obj.cb_readable(diff_mat, col_lim_type, num_ticks)
-                    mp = axo.imshow(diff_mat, cmap = pltz_obj.cmap, norm = MidpointNormalize(midpoint = 0, vmin = pltz_obj.vmin, vmax = pltz_obj.vmax))
-                    cbar = fig.colorbar(mp, ax=axo, fraction=0.04, pad=0.04, extend = 'max', ticks = pltz_obj.cb_range)
-                    cbar.ax.tick_params(labelsize = fsize)
-                    axo.set_title(self.dt[self.idt[j]], fontsize=fsize+4)
-                elif col_lim_type == 'L':
-                    mp = axo.imshow(diff_mat, cmap = pltz_obj.cmap, norm = MidpointNormalize(midpoint = 0, vmin = pltz_obj.vmin, vmax = pltz_obj.vmax))
-                    cbar = fig.colorbar(mp, ax=axo, fraction=0.04, pad=0.04, orientation = 'horizontal',
-                                        extend = 'max', ticks = pltz_obj.cb_range)
-                    cbar.ax.tick_params(labelsize = fsize)
-                mp.axes.get_xaxis().set_ticks([])
-                mp.axes.get_yaxis().set_ticks([])
-                fig.suptitle('Specific Mass (mm) difference map (New Model - Old Model)', fontsize = fsize+8)
-                ct += 1
+                try:  #ensure no empty subplots
+                    diff_mat = self.diff_mat[ct*3 + idi,:,:]
+                    if col_lim_type == 'A':
+                        pltz_obj.cb_readable(diff_mat, col_lim_type, num_ticks)
+                        mp = axo.imshow(diff_mat, cmap = pltz_obj.cmap, norm = MidpointNormalize(midpoint = 0, vmin = pltz_obj.vmin, vmax = pltz_obj.vmax))
+                        cbar = fig.colorbar(mp, ax=axo, fraction=0.04, pad=0.04, extend = 'max', ticks = pltz_obj.cb_range)
+                        cbar.ax.tick_params(labelsize = fsize)
+                        axo.set_title(self.dt[self.idt[j + i *9]], fontsize=fsize+4)
+                    elif col_lim_type == 'L':
+                        mp = axo.imshow(diff_mat, cmap = pltz_obj.cmap, norm = MidpointNormalize(midpoint = 0, vmin = pltz_obj.vmin, vmax = pltz_obj.vmax))
+                        cbar = fig.colorbar(mp, ax=axo, fraction=0.04, pad=0.04, orientation = 'horizontal',
+                                            extend = 'max', ticks = pltz_obj.cb_range)
+                        cbar.ax.tick_params(labelsize = fsize)
+                    mp.axes.get_xaxis().set_ticks([])
+                    mp.axes.get_yaxis().set_ticks([])
+                    fig.suptitle('Specific Mass (mm) difference map (New Model - Old Model)', fontsize = fsize+8)
+                    ct += 1
+                except IndexError:  #ensure no empty subplots
+                    axo.axis("off")
             str = img_str + '%r.png' %(i+1)  # adds +1 to fig name if multi image (i.e. > 9 subplots)
             plt.savefig(str, dpi=180)
             # plt.show()
