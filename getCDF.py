@@ -212,19 +212,20 @@ class GetCDF():
             avg_spec_mass_orig.append(round(spec_mass_all_cells_new_avg, 2))
         self.diff_mat_no_trim = mat
         mat = mat[self.trim_to_NA_extent()]
-        # hack to reshape trimmed mat.  above step creates a 1d vector of array values
+        # hack to reshape trimmed mat.  above step creplot_diffates a 1d vector of array values
         mat = np.reshape(mat, (self.num_times * 3, self.nrows_trim, self.ncols_trim))
         self.diff_mat = mat
         self.acre_feet_delt = acre_ft_diff
         self.acre_feet_delt_norm = acre_ft_diff_norm
         self.avg_spec_mass_orig = avg_spec_mass_orig
 
+        # Make DataFrame
         time_list = []
         [time_list.append(self.dt[idt]) for idt in self.idt]
         df = pd.DataFrame({'Date': time_list[:], 'Basin Avg SWE (mm)': self.avg_spec_mass_orig,
             'Basin Change (acre_ft)': self.acre_feet_delt, 'Basin Change (%)': self.acre_feet_delt_norm})
         df = df[['Date', 'Basin Avg SWE (mm)', 'Basin Change (acre_ft)', 'Basin Change (%)']]
-        # df = df.set_index('Date')
+        df = df.set_index('Date')
         self.df = df
 
 

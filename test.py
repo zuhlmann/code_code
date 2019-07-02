@@ -28,19 +28,20 @@ var = 'specific_mass'
 # Add mask to gcdf object
 f_in_mask = '/home/zachuhlmann/projects/Hedrick_WRR_2018/tuol_topo_wrr18.nc'
 f_in_hed = '/home/zachuhlmann/projects/Hedrick_WRR_2018/snow_WRR18_ipw_cat_zenodo.nc'
+start_time = '2013-01-01 23:00:00'
 
 # NEW MODEL
 gcdf_obj = gcdf.GetCDF()
-gcdf_obj.init_nc_with_time(f_in, var, '2012-10-01 23:00:00', '2013-01-01 23:00:00', 'd')
+gcdf_obj.init_nc_with_time(f_in, var, '2012-10-01 23:00:00', start_time, 'd')
 gcdf_obj.get_topo(f_in_mask) #mask
 # Necessary to init time indices
-gcdf_obj.print_dates(10, 7)  # Keep either at 4 or multiples of 9 if saving plot. --> cont...
+gcdf_obj.print_dates(24, 7)  # Keep either at 4 or multiples of 9 if saving plot. --> cont...
 #Need to fix ~line 248 to only loop through number of times, not axs! ZRU 6/6/19
 print('Number of observations: {0} \n April 1 index: {1}'.format(gcdf_obj.nobs, gcdf_obj.ids))
 
 # OLD MODEL
 gcdf_obj_hed = gcdf.GetCDF()
-gcdf_obj_hed.init_nc_with_time(f_in_hed, var, '2012-10-01 23:00:00', '2013-01-01 23:00:00', 'd')
+gcdf_obj_hed.init_nc_with_time(f_in_hed, var, '2012-10-01 23:00:00', start_time, 'd')
 
 # # PLOT 3 PANEL: new, old, new - old
 # gcdf_obj.plot_diff(gcdf_obj_hed)
@@ -54,6 +55,15 @@ gcdf_obj.get_diff(gcdf_obj_hed)
 # print('the basin diff is: ', gcdf_obj.acre_feet_delt_norm,  'acre feet norm')
 # print('the basin area (masked) = {:.1f} acres' .format(gcdf_obj.basin_area))
 
+# PLOT DATAFRAME
+df = gcdf_obj.df
+sns.set(rc={'figure.figsize':(11, 4)})
+axes = df.plot(y = 'Basin Change (%)', marker = 'o', linestyle='None')
+axes.set_ylabel('Basin Change (%)')
+axes.set_title('Difference Mod Runs (New - Old) Tuolomne WY2013')
+# df['Basin Change (%)'].plot(linewidth=0.5)
+# plt.show()
+plt.savefig('basin_change_graph_tuolWY2013.png')
 
 # # # SAVE TO NC: save gdcf_obj.diff_mat[i *3 +2,:,:] to nc to visualize change
 # fd_out = '/home/zachuhlmann/projects/Hedrick_WRR_2018'
@@ -61,8 +71,8 @@ gcdf_obj.get_diff(gcdf_obj_hed)
 # ipw_nc_obj = ipw_nc.IPW_to_netCDF(fd_out, fp_dem)
 # ipw_nc_obj.mat_to_nc(gcdf_obj)
 
-# Print table
-print('')
-print(gcdf_obj.df)
+# # Print table
+# print('')
+# print(gcdf_obj.df)
 
 # gcdf_obj.plot_simple(dates)

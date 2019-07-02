@@ -1,0 +1,69 @@
+** PANDAS DATAFRAME **
+Idea: pands DF is great!  But, too comp expensive to create data structure anew.  But to gather data
+into primative structure (i.e list or dict) then transfer to DF.
+
+time based indexing:
+ - can index by date time index (10-28-2019)  --> converts to 64 bit nanoseconds
+ - Access time like:
+    ** single date df.loc['2019-10-28']
+    ** Range ** df.loc['2019-10-28':'2019-11-2']
+    ** year ** df.loc['2018']
+    ** month ** df.loc['2018-10']
+
+ARGPARSE
+add_argument() method
+1. naming of flags
+  - parser.add_argument('f', '--foo')  --> optional
+  - parser.add_argument('bar')  --> positional
+2.  Action
+  ** options **  store_const, store_tru, store_false, append, count
+    - count might be useful for tons of arguments with same flag
+    - append - create list from multiple arrays
+3. NARGS
+  - parser.add_argument('--foo', nargs=2)
+  --foo arg1 arg2
+4. Const
+5. default
+6. type
+  - default a type or convert
+7. choices - restricts args to specified list (i.e. range(5,25))
+8. help - prints help statment when called (--help)
+9. required
+10. metavar - just read
+11. default
+12. dest -organizes options strings
+
+GIT
+** git log ** |
+-p (patch) | shows lines added / del
+            | checks version of software
+--stat      | delete add statistics
+--graph     | ASCII graphical branch diagram
+
+** git commit
+-- amend    | amends a commit or message
+** git config
+** git add |
+-a -m       | adds all files, message. skips staging step
+** git branch |
+-v          | see last commit on each branch
+--merged    | see what has merged
+--no-merged   | " " not " "
+** git rebase **  | interactively move refs you don't know where they live
+** git status   |
+-s              | short.  More concise status
+** git cat-file <SHA-1 key>  |
+-t  | prints type of object
+-f  | prints content of object
+
+
+
+
+Various
+git commit --global core.editor atom  | changes editor to atom
+git diff-tree --no-commit-id --name-only r <SHA tag>  | shows which files committed for each commit
+git rev-parse [branch name] | for lower level operations, not day to day.  shows last commit
+git reflog  | reference log; nice history of head
+  -git show HEAD@{[# of reflog]}  | any # of reflog
+git cat-file  | swiss army knife for inspecting git objects (git ch. 10.2)
+git mv <file-in> <file_rename>   | effectively changes file name and commits.  Best way to rename

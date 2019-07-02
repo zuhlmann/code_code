@@ -77,3 +77,10 @@ slc = [3, 7, 9, 11]
 date = []
 date = str[slc[0]:slc[1]] + '-' + str[slc[1]:slc[2]] + '-' + str[slc[2]:slc[3]] + ' 00:00:00'
 print(date)
+
+''' Matplotlib / Pandas '''
+# multipanel with shared x-label
+fig, axes = plt.subplots(3, 1, figsize=(11, 10), sharex=True)
+for name, ax in zip(['Consumption', 'Solar', 'Wind'], axes):
+if ax != axes[-1]:  #!!!!!  Here's the meat!  https://www.dataquest.io/blog/tutorial-time-series-analysis-with-pandas/
+ax.set_xlabel('')

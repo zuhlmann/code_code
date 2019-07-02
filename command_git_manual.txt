@@ -87,6 +87,9 @@ GDAL
 $ gdalinfo NETCDF:"topo_RME.nc":veg_type   --->  i.e. $gdalinfo NETCDF:"<file name>":<short name>
             ---> this will give LOTS of details on band
 
+$ gdal_translate -a_nodata 0 /path/to/file/INPUT.tif projects/basin_masks/test.tif
+  # changes zero to nodata in the input.tif
+
 VI
 : CTL D   --->  lists commands
 
