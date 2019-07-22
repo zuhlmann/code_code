@@ -5,6 +5,7 @@ import math
 import matplotlib.pyplot as plt
 import pandas as pd
 from copy import deepcopy
+import time
 
 
 class GDAL_python_synergy():
@@ -163,7 +164,9 @@ class GDAL_python_synergy():
         # flag_spatial = np.zeros(mat.shape, dtype = bool)
         pct = np.zeros(mat.shape, dtype = float)  # proportion of neighboring pixels in mov_wind
         ct = 0
+        time_row = []
         for i in range(nrow):
+            start = time.time()
             if i >= base_offset - 1:
                 prox_row_edge = nrow - i - 1
                 if prox_row_edge >= base_offset - 1:
@@ -174,7 +177,8 @@ class GDAL_python_synergy():
             elif i < base_offset - 1:
                 prox_row_edge = i
                 row_idx = np.arange(prox_row_edge * (-1), base_offset)
-
+            end = time.time()
+            time_row.append(end-start)
             for j in range(ncol):
                 if j >= base_offset - 1:
                     prox_col_edge = ncol - j - 1
@@ -191,10 +195,11 @@ class GDAL_python_synergy():
                 base_row = np.ravel(np.tile(row_idx, (len(col_idx),1)), order = 'F') + i
                 base_col = np.ravel(np.tile(col_idx, (len(row_idx),1))) + j
                 sub = mat[base_row, base_col]
-                pct[i,j] = (np.sum(sub > 0)) / sub.shape[0]  # add
-                # flag_spatial[i,j] = self.spatial_outlier(sub, thr)
-        # self.flag_hist_spatial = flag_spatial & (self.bins>0)
-        self.pct = pct  # add
+                pct[i,j] = (np.sum(sub > 0)) / sub.shape[0]
+        # self.pct = pct    #deleted
+        print(self.mean(time_row))
+        return(pct)
+
 
     def hist_utils(self, name, nbins):
         '''consider adding density option to np.histogram2d'''
@@ -225,17 +230,18 @@ class GDAL_python_synergy():
         self.bin_loc = tuple_array  #array of tuples containing 0 to N x,y coordinates of overlapping snow map
                                     #locations contributing to 2d histogram bins
         print('finished hist')
-    def outliers_hist(self, thr):
+    def outliers_hist(self, thresh, moving_window_name, moving_window_size):
         '''creates boolean of all 2d histogram-space outliers (self.outliers_hist_space)'''
         # INPUTS
         # thr   threshold of bin counts below which outliers will be flagged
-        flag_bin_ct = self.bins < thr[0]
+        flag_bin_ct = self.bins < thresh[0]
         # Prob change:  flag of melt above threshold i.e. > (thr * 100) %
         # mnr = np.max(np.where(self.yedges <= thr[1]))  #should be row where meltout occured above thresh
         # flag_complete_melt = np.zeros(self.bins.shape, dtype=bool)
         # flag_complete_melt[:mnr+1,:] = True
         # flag_complete_melt = flag_complete_melt & (self.bins > 0)
-        flag_spatial_outlier = (self.pct < thr[2]) & (self.bins>0)
+        pct = self.mov_wind(moving_window_name, moving_window_size)
+        flag_spatial_outlier = (pct < thresh[2]) & (self.bins>0)
         flag = (flag_spatial_outlier | flag_bin_ct)
         self.outliers_hist_space = flag
         self.hist_to_map_space()  # unpack hisogram space outliers to geographic space locations
@@ -257,30 +263,29 @@ class GDAL_python_synergy():
             self.outliers_map_space = (self.flag_block | self.outliers_map_space)
         else:
             self.outliers_map_space = copy.deepcopy(self.flag_block)
-    def block_behavior(self):
-        flag1 = 1 * (self.mat_clip1 == 0) & (self.mat_clip2 != 0)
-        flag2 = 1 * (self.mat_clip1 != 0) & (self.mat_clip2 == 0)
-        flag_zeros = flag1 + flag2
-        quantile_outliers = (self.mat_diff_norm > self.ub) | (self.mat_diff_norm < self.lb)
-        quantile_outliers = self.mat_diff_norm > self.ub
-        flag_zeros = flag_zeros & quantile_outliers
+    def block_behavior(self, moving_window_size, neighborhood_threshold):
+        all_loss = 1 * (self.mat_clip1 != 0) & (self.mat_clip2 == 0)  #gained everything
+        all_gain = 1 * (self.mat_clip1 == 0) & (self.mat_clip2 != 0)  #lost everything
+        loss_outliers = self.mat_diff_norm < self.lb
+        gain_outliers = self.mat_diff_norm > self.ub
+        flag_loss_block = all_loss & loss_outliers
+        flag_gain_block = all_gain & gain_outliers
         print('this may take awhile!')
-        self.mov_wind(flag_zeros, 5)
-        thr = 5/25
-        flag_block = (self.pct > thr) & self.overlap_conditional
-        print(np.sum(flag_block))
-        self.flag_block = flag_block.copy()
+        start = time.time()
+        pct = self.mov_wind(flag_loss_block, moving_window_size)
+        end = time.time()
+        print('first block time: ', end-start)
+        flag_loss_block = (pct > neighborhood_threshold) & self.overlap_conditional
+        self.flag_loss_block = flag_loss_block.copy()
+        start = time.time()
+        pct = self.mov_wind(flag_gain_block, moving_window_size)
+        end = time.time()
+        print('second block time: ',end-start)
+        flag_gain_block = (pct >neighborhood_threshold) & self.overlap_conditional
+        self.flag_gain_block = flag_gain_block.copy()
+        self.flag_block = self.flag_gain_block | self.flag_loss_block
+        self.flag_block = self.flag_gain_block
 
-    def spatial_outlier(self, sub, thr):
-        '''flags cells with a relative number of neighboring cells within moving window less than threshold '''
-        # INPUT
-        # sub  =   moving window subset
-        # thr  =   threshold to determine spatial outlier
-        # make threshold slightly greater than <= desired.  i.e., 2/9 if 1/9 cells needs to be flagged.
-        # A cell with 2/9 presence will not be flagged as it must: flag = pct < thr
-        pct = (np.sum(sub > 0)) / sub.shape[0]
-        flag = pct < thr
-        return flag
     def __repr__(self):
             return ('once filled out this will describe my object')
     # def pattern_flag(self, sub):
@@ -339,34 +344,48 @@ class GDAL_python_synergy():
                 tmp = ncol * i + j
                 id.append(tmp)
         self.id = id
-    def save_tiff(self, name, fname):
+    def save_tiff(self, fname, *argv):
         ''' saves clipped mat to geotiff using RasterIO basically'''
         # INPUT
         # mat   mat to save
         # fname  <filename> string
         # OUTPUT
         # saves a tiff with <filename>.tif to filepath (self.fp_out)
-        mat = getattr(self, name)
+        fn_out = self.fp_out + fname + '.tif'
+        if len(argv) > 0:  # if a specific band is specified
+            name = argv[0]
+            dims = getattr(self, name).shape
+            count = 1
+        else:
+            name = ['flag_loss_block', 'flag_gain_block', 'mat_diff_norm_nans']
+            dims = getattr(self, name[0]).shape
+            print('dims (hopefully 2d): ', dims)
+            count = len(name)
+
         meta_new = deepcopy(self.meta1)
         aff = deepcopy(self.d1.transform)
         new_aff = rio.Affine(aff.a, aff.b, self.left_max_bound, aff.d, aff.e, self.top_max_bound)
         meta_new.update({
-            'height':mat.shape[0],
-            'width': mat.shape[1],
-            'transform': new_aff})
-        # new_aff = rasterio.Affine(aff.a * oview, aff.b, aff.c, aff.c, aff.e * oview, aff.f)
-        # meta_new['transform'][0]=20000
-        # meta_new['transform'][2], self.meta1['transform'][5] = self.left, self.top
-        # print('here')
-        # mat[(mat < self.lb) | (mat > self.up)] = np.nan
-        print('old meta', self.meta1)
-        print('meta new ', meta_new)
-        fn_out = self.fp_out + fname + '.tif'
-        with rio.open(fn_out, 'w', **meta_new) as dst:
-            try:
-                dst.write(mat,1)# print(mask.shape)
-            except ValueError:
-                dst.write(mat.astype('float32'),1)
+            'height':dims[0],
+            'width': dims[1],
+            'transform': new_aff,
+            'count': count})
+        print('meta new: ', meta_new)
+        if count == 1:
+            with rio.open(fn_out, 'w', **meta_new) as dst:
+                mat_temp = getattr(self,name)
+                try:
+                    dst.write(mat_temp,1)# print(mask.shape)
+                except ValueError:
+                    dst.write(mat_temp.astype('float32'),1)
+        if count > 1:
+            with rio.open(fn_out, 'w', **meta_new) as dst:
+                for id, band in enumerate(name, start = 1):
+                    try:
+                        dst.write_band(id, getattr(self, name[id - 1]))# print(mask.shape)
+                    except ValueError:
+                        mat_temp = getattr(self, name[id - 1])
+                        dst.write_band(id, mat_temp.astype('float32'))
     def replace_qml(self):
         ''' modifies qml file from qgis to replace color ramp with one scaled to mat'''
         import math
@@ -442,3 +461,5 @@ class GDAL_python_synergy():
 
     def fractional_exp(self, x, a, c, d):
         return a * np.exp(-c * x) + d
+    def mean(self, numbers):
+        return float(sum(numbers)) / max(len(numbers), 1)

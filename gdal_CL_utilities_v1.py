@@ -4,7 +4,6 @@ import copy
 import math
 import matplotlib.pyplot as plt
 import pandas as pd
-from copy import deepcopy
 
 
 class GDAL_python_synergy():
@@ -12,13 +11,11 @@ class GDAL_python_synergy():
         with rio.open(fp_d1) as src:
             self.d1 = src
             self.meta1 = self.d1.profile
-            mat1 = self.d1.read()  #matrix
-            self.mat1 = mat1[0]
+            self.mat1 = self.d1.read()  #matrix
         with rio.open(fp_d2) as src:
             self.d2 = src
             self.meta2 = self.d2.profile
-            mat2 = self.d2.read()  #matrix
-            self.mat2 = mat2[0]
+            self.mat2 = self.d2.read()  #matrix
         self.fp_out = fp_out
     def clip_extent_overlap(self):
         ''' finds overlapping extent of two tiffs'''
@@ -34,7 +31,7 @@ class GDAL_python_synergy():
         bottom_max_bound = max(bounds[1], bounds[5])
         right_min_bound = min(bounds[2], bounds[6])
         top_min_bound = min(bounds[3], bounds[7])
-        self.top_max_bound = top_min_bound
+        self.top_max_bound =top_min_bound
         self.left_max_bound = left_max_bound
         for d in range(2):  # datasets
             # below loop makes list of line and sample georaphic coordinates (column and row)
@@ -56,43 +53,36 @@ class GDAL_python_synergy():
                     col.index(left_max_bound), col.index(right_min_bound - rez)]
             #subset both datasets --> mat_clip[num]
             if d == 0:
-                mat = self.mat1
+                mat = self.mat1[0]
                 mat_clip1 = mat[ids[0]:ids[1], ids[2]:ids[3]]
                 # print('dataset 1. bottom: ', ids[0], 'top: ', ids[1], 'left: ', ids[2], 'right: ', ids[3])
                 # print('height: ', self.meta1['height'], 'width: ', self.meta1['width'])
             elif d == 1:
-                mat = self.mat2
+                mat = self.mat2[0]
                 mat_clip2 = mat[ids[0]:ids[1], ids[2]:ids[3]]
                 # print('dataset 2. bottom: ', ids[0], 'top: ', ids[1], 'left: ', ids[2], 'right: ', ids[3])
                 # print('height: ', self.meta2['height'], 'width: ', self.meta2['width'])
-
-        # calculations on np arrays fail with np.nan values.  save one of each mat
-        # with nans and -9999
-        self.mat_clip1_nans, self.mat_clip2_nans = mat_clip1.copy(), mat_clip2.copy()
-        mat_clip1, mat_clip2 = mat_clip1.copy(), mat_clip2.copy()
-        mat_clip1[np.isnan(mat_clip1)] = -9999
+        mat_clip1[np.isnan(mat_clip1)] = -9999  # ensures no nans in calculations
         mat_clip2[np.isnan(mat_clip2)] = -9999
-        self.mat_clip1, self.mat_clip2 = mat_clip1, mat_clip2
+        self.mat_clip1 = mat_clip1
+        self.mat_clip2 = mat_clip2
 
     def make_diff_mat(self):
         mat_clip1 = self.mat_clip1.copy()
         mat_clip2 = self.mat_clip2.copy()
 
         self.mat_diff = mat_clip2 - mat_clip1
-        mat_clip1[(mat_clip1 < 0.25) & (mat_clip1 != -9999)] = 0.25  # To avoid dividing by zero
+        self.mask()
+        mat_clip1[mat_clip1<0.25] = 0.25  # To avoid dividing by zero
         mat_diff_norm = np.round((self.mat_diff / mat_clip1), 2)
-        self.mat_diff_norm = mat_diff_norm.copy()
-        mat_diff_norm_nans = mat_diff_norm.copy()
-        mat_diff_norm_nans[(mat_clip1 == -9999) | (mat_clip2 == -9999)] = np.nan
-        self.mat_diff_norm_nans = mat_diff_norm_nans.copy()
+        self.lb = round(np.nanpercentile(mat_diff_norm[self.id_present], 5  ),3)
+        self.ub = round(np.nanpercentile(mat_diff_norm[self.id_present], 99.9),3)
+        self.mat_diff_norm = mat_diff_norm
         # self.mat_clip2 = self.nan_reverse('mat_clip2', 2)
 
     def mask(self):
         '''consider consolidating with mask_advanced, essentially creates self.overlap'''
-        # self.id_present = (self.mat_clip1!=-9999) & (self.mat_clip2!=-9999)
-        self.id_nans_mat_clip1 = np.isnan(self.mat_clip1)
-        self.id_nans_mat_clip2 = np.isnan(self.mat_clip2)
-        self.id_nans_mat_overlap = (np.isnan(self.mat_clip1)) | (np.isnan(self.mat_clip2))
+        self.id_present = (self.mat_clip1!=-9999) & (self.mat_clip2!=-9999)
 
     def nan_reverse(self, str, option):
         mat = getattr(self, str)
@@ -108,17 +98,13 @@ class GDAL_python_synergy():
         # name:  matrix name as saved in self.[NAME]  Type = string
         # op:  operation codes to be performed on each matrix.  Type = list or tuple
         # val: Sets values to perform comparison operations.  Type = list or tuple (match dimensions of op)
-        # OUTPUTS
-        # self.overlap_nan    boolean where all matrices do not have nans or -9999
-        # self.overlap_conditional    boolean with no nans that meets conditions for all overlapping matrices
         keys = {'lt':'<', 'gt':'>'}
         shp = getattr(self, name[0]).shape
-        overlap_nan = np.ones(shp, dtype = bool)
-        overlap_conditional = np.ones(shp, dtype = bool)
+        overlap = np.ones(shp, dtype = bool)
         for i in range(len(name)):
             mat = getattr(self, name[i])
             try:
-                num_op = len(op[i])
+                 num_op = len(op[i])
             except IndexError:
                 num_op = 0
             # replace nan with -9999 and identify location for output
@@ -137,27 +123,18 @@ class GDAL_python_synergy():
                 op_str = keys[op[i][j]]
                 cmd = 'mat_mask' + op_str + str(val[i][j])
                 temp = eval(cmd)
-                # overlap = overlap & temp
-                overlap_conditional = overlap_conditional & temp
-            # overlap = overlap & temp_nan  # where conditions of comparison are met and no nans
-            overlap_nan = overlap_nan & temp_nan  # where conditions of comparison are met and no nans
-        self.overlap_nan = overlap_nan.copy()
-        self.overlap_conditional = overlap_conditional & overlap_nan
-        temp = self.mat_diff_norm[self.overlap_nan]
-        self.lb = round(np.nanpercentile(temp[temp < 0], 50), 3)
-        self.ub = round(np.nanpercentile(temp[temp > 0], 50), 3)
+                overlap = overlap & temp
+            overlap = overlap & temp_nan  # where conditions of comparison are met and no nans
+        self.overlap = overlap
 
-    def mov_wind(self, name, size):
+    def mov_wind(self, name, size, thr):
         ''' moving window base function.  switch filter/kernel for different flag'''
         #INPUT
         # name   string for self.<file_name>
         # size   moving window size, i.e. size = size^2
         # thr    fraction of neighboring pixels present below which, pixel is flagged as outlier
         # Note: currently used for 2dhist, but can be used on any 2d image
-        if isinstance(name, str):
-            mat = getattr(self, name)
-        else:
-            mat = name
+        mat = getattr(self, name)
         nrow, ncol = mat.shape
         base_offset = math.ceil(size/2)
         # flag_spatial = np.zeros(mat.shape, dtype = bool)
@@ -196,6 +173,13 @@ class GDAL_python_synergy():
         # self.flag_hist_spatial = flag_spatial & (self.bins>0)
         self.pct = pct  # add
 
+    def block_behavior(self):
+        flag1 = 1 * (self.mat_clip1 == 0) & (self.mat_clip2 != 0)
+        flag2 = 1 * (self.mat_clip1 != 0) & (self.mat_clip2 == 0)
+        self.flag_zeros = flag1 + flag2
+        flag.zeros.astype(bool)
+        self.mov_wind(self, name, size, thr)
+
     def hist_utils(self, name, nbins):
         '''consider adding density option to np.histogram2d'''
         # InPUTS
@@ -204,7 +188,7 @@ class GDAL_python_synergy():
         # I don't think an array with nested tuples is computationally efficient.  Find better data structure for the tuple_array
         m1, m2 = getattr(self, name[0]), getattr(self, name[1])
         self.mat_shape = m1.shape
-        m1_nan, m2_nan = m1[self.overlap_conditional], m2[self.overlap_conditional]
+        m1_nan, m2_nan = m1[self.overlap], m2[self.overlap]
         bins, xedges, yedges = np.histogram2d(np.ravel(m1_nan), np.ravel(m2_nan), nbins)
         # Now find bin edges of overlapping snow depth locations from both dates, and save to self.bin_loc as array of tuples
         xedges = np.delete(xedges, -1)   # remove the last edge
@@ -216,7 +200,7 @@ class GDAL_python_synergy():
         idxb = np.digitize(m1_nan, xedges) -1  # id of x bin edges.  dims = (N,) array
         idyb = np.digitize(m2_nan, yedges) -1  # id of y bin edges
         tuple_array = np.empty((nbins[1], nbins[0]), dtype = object)
-        id = np.where(self.overlap_conditional)  # coordinate locations of mat used to generate hist
+        id = np.where(self.overlap)  # coordinate locations of mat used to generate hist
         idmr, idmc = id[0], id[1]  # idmat row and col
         for i in range(idyb.shape[0]):
                 if type(tuple_array[idyb[i], idxb[i]]) != list:  #initiate list if does not exist
@@ -224,23 +208,24 @@ class GDAL_python_synergy():
                 tuple_array[idyb[i], idxb[i]].append([idmr[i], idmc[i]])  #appends map space indices into bin space
         self.bin_loc = tuple_array  #array of tuples containing 0 to N x,y coordinates of overlapping snow map
                                     #locations contributing to 2d histogram bins
-        print('finished hist')
-    def outliers_hist(self, thr):
+
+    def outliers(self, thr):
         '''creates boolean of all 2d histogram-space outliers (self.outliers_hist_space)'''
         # INPUTS
         # thr   threshold of bin counts below which outliers will be flagged
         flag_bin_ct = self.bins < thr[0]
         # Prob change:  flag of melt above threshold i.e. > (thr * 100) %
-        # mnr = np.max(np.where(self.yedges <= thr[1]))  #should be row where meltout occured above thresh
-        # flag_complete_melt = np.zeros(self.bins.shape, dtype=bool)
-        # flag_complete_melt[:mnr+1,:] = True
-        # flag_complete_melt = flag_complete_melt & (self.bins > 0)
+        mnr = np.max(np.where(self.yedges <= thr[1]))  #should be row where meltout occured above thresh
+        flag_complete_melt = np.zeros(self.bins.shape, dtype=bool)
+        flag_complete_melt[:mnr+1,:] = True
+        flag_complete_melt = flag_complete_melt & (self.bins > 0)
         flag_spatial_outlier = (self.pct < thr[2]) & (self.bins>0)
-        flag = (flag_spatial_outlier | flag_bin_ct)
+        # flag = (self.flag_hist_spatial | flag_complete_melt | flag_bin_ct)
+        flag = (flag_spatial_outlier | flag_complete_melt | flag_bin_ct)
         self.outliers_hist_space = flag
-        self.hist_to_map_space()  # unpack hisogram space outliers to geographic space locations
+        self.map_flagged()  # unpack hisogram space outliers to geographic space locations
 
-    def hist_to_map_space(self):
+    def map_flagged(self):
         ''' unpacks histogram bins onto their contributing map locations (self.outliers_hist_space)'''
         hist_outliers = np.zeros(self.mat_shape, dtype = int)
         # idarr = np.where(pd.notna(self.bin_loc))  # id where bin array has a tuple of locations
@@ -251,26 +236,7 @@ class GDAL_python_synergy():
                 pair = loc_tuple[j]
                 hist_outliers[pair[0], pair[1]] = 1
         self.outliers_map_space = hist_outliers  # unpacked map-space locations of outliers
-
-    def outliers_map(self):
-        if hasattr(self, 'outliers_map_space'):
-            self.outliers_map_space = (self.flag_block | self.outliers_map_space)
-        else:
-            self.outliers_map_space = copy.deepcopy(self.flag_block)
-    def block_behavior(self):
-        flag1 = 1 * (self.mat_clip1 == 0) & (self.mat_clip2 != 0)
-        flag2 = 1 * (self.mat_clip1 != 0) & (self.mat_clip2 == 0)
-        flag_zeros = flag1 + flag2
-        quantile_outliers = (self.mat_diff_norm > self.ub) | (self.mat_diff_norm < self.lb)
-        quantile_outliers = self.mat_diff_norm > self.ub
-        flag_zeros = flag_zeros & quantile_outliers
-        print('this may take awhile!')
-        self.mov_wind(flag_zeros, 5)
-        thr = 5/25
-        flag_block = (self.pct > thr) & self.overlap_conditional
-        print(np.sum(flag_block))
-        self.flag_block = flag_block.copy()
-
+        print('hist outliers sum: ', np.sum(hist_outliers))
     def spatial_outlier(self, sub, thr):
         '''flags cells with a relative number of neighboring cells within moving window less than threshold '''
         # INPUT
@@ -281,8 +247,7 @@ class GDAL_python_synergy():
         pct = (np.sum(sub > 0)) / sub.shape[0]
         flag = pct < thr
         return flag
-    def __repr__(self):
-            return ('once filled out this will describe my object')
+
     # def pattern_flag(self, sub):
     #     size = self.mov_wind_size
     #     pres = sub > 0
@@ -300,8 +265,8 @@ class GDAL_python_synergy():
         # OUTPUT
         # returns trimmed mat
         mat_out = getattr(self, name)
-        mat = self.overlap_nan
-        nrows, ncols = self.overlap_nan.shape[0], self.overlap_nan.shape[1]
+        mat = self.overlap
+        nrows, ncols = self.overlap.shape[0], self.overlap.shape[1]
         #Now get indices to clip excess NAs
         tmp = []
         for i in range(nrows):
@@ -327,7 +292,7 @@ class GDAL_python_synergy():
         idc = tmp.copy()   #idx to clip [min_row, max_row, min_col, max_col]
         mat_out = mat_out[idc[0]:idc[1],idc[2]:idc[3]]
         if ~hasattr(self, 'overlap_nan_trim'):
-            self.overlap_nan_trim = self.overlap_nan[idc[0]:idc[1],idc[2]:idc[3]]  # overlap boolean trimmed to nan_extent
+            self.overlap_nan_trim = self.overlap[idc[0]:idc[1],idc[2]:idc[3]]  # overlap boolean trimmed to nan_extent
         return mat_out
     def row_col_to_idx(self, idp):
         ''' never used.  converts [[<row index array> (N,)], [<column index array> (N,) ]] to array of single value indices'''
@@ -339,27 +304,25 @@ class GDAL_python_synergy():
                 tmp = ncol * i + j
                 id.append(tmp)
         self.id = id
-    def save_tiff(self, name, fname):
+    def save_tiff(self, mat, fname):
         ''' saves clipped mat to geotiff using RasterIO basically'''
         # INPUT
         # mat   mat to save
         # fname  <filename> string
         # OUTPUT
         # saves a tiff with <filename>.tif to filepath (self.fp_out)
-        mat = getattr(self, name)
-        meta_new = deepcopy(self.meta1)
-        aff = deepcopy(self.d1.transform)
+        meta_new = self.meta1.copy()
+        aff = self.d1.transform
         new_aff = rio.Affine(aff.a, aff.b, self.left_max_bound, aff.d, aff.e, self.top_max_bound)
         meta_new.update({
-            'height':mat.shape[0],
-            'width': mat.shape[1],
+            'height': self.mat_clip1.shape[0],
+            'width': self.mat_clip1.shape[1],
             'transform': new_aff})
         # new_aff = rasterio.Affine(aff.a * oview, aff.b, aff.c, aff.c, aff.e * oview, aff.f)
         # meta_new['transform'][0]=20000
         # meta_new['transform'][2], self.meta1['transform'][5] = self.left, self.top
         # print('here')
         # mat[(mat < self.lb) | (mat > self.up)] = np.nan
-        print('old meta', self.meta1)
         print('meta new ', meta_new)
         fn_out = self.fp_out + fname + '.tif'
         with rio.open(fn_out, 'w', **meta_new) as dst:

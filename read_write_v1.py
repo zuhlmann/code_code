@@ -1,26 +1,24 @@
 import sys
 # sys.path.insert(0, '/home/zachuhlmann/code/code')
+import plotables as pltz
 import numpy as np
 import rasterio as rio
-import gdal_CL_utilities as gdalUtils
-from snowav.utils.MidpointNormalize import MidpointNormalize
 import matplotlib.pyplot as plt
-import plotables as pltz
-
+import gdal_CL_utilities_v1 as gdalUtils
+import matplotlib.pyplot as plt
+from snowav.utils.MidpointNormalize import MidpointNormalize
 # from pylab import *
 # from scipy.optimize import curve_fit
 
 
-fp_d1 = '/mnt/snowpack/lidar/Lakes/2019/USCALB20190501_SUPERsnow_depth_clipped.tif'
-fp_d2 = '/mnt/snowpack/lidar/Lakes/2019/USCALB20190611_SUPERsnow_depth_clipped.tif'
-fp_d1_2 = '/mnt/snowpack/lidar/SanJoaquin/2019/aso/USCASJ20190614_SUPERsnow_depth_50p0m_agg.tif'
-fp_d2_2 = '/mnt/snowpack/lidar/SanJoaquin/2019/aso/USCASJ20190704_SUPERsnow_depth_50p0m_agg.tif'
 
+fp_d1 = '/mnt/snowpack/lidar/Lakes/2019/USCALB20190611_SUPERsnow_depth_clipped.tif'
+fp_d2 = '/mnt/snowpack/lidar/Lakes/2019/USCALB20190501_SUPERsnow_depth_clipped.tif'
+fp_d2_2 = '/mnt/snowpack/lidar/SanJoaquin/2019/aso/USCASJ20190704_SUPERsnow_depth_50p0m_agg.tif'
+fp_d1_2 = '/mnt/snowpack/lidar/SanJoaquin/2019/aso/USCASJ20190614_SUPERsnow_depth_50p0m_agg.tif'
 fp_out = '/home/zachuhlmann/projects/basin_masks/'
 
-
-
-utils_obj = gdalUtils.GDAL_python_synergy(fp_d1, fp_d2, fp_out)
+utils_obj = gdalUtils.GDAL_python_synergy(fp_d1_2, fp_d2_2, fp_out)
 utils_obj.clip_extent_overlap()
 utils_obj.make_diff_mat()
 # utils_obj.basic_stats()
@@ -34,23 +32,13 @@ pltz_obj.marks_colors()
 
 # MAPPING OUTLIERS
 name = ['mat_clip1', 'mat_diff_norm', 'mat_clip2']
-operator = [['lt', 'gt'], ['lt', 'gt']]  #display options
-val = [[17, -0.01], [10, -1.01]]   #display options
-histogram_mats = ['mat_clip1', 'mat_diff_norm']
-bin_dims = (60, 200)
-moving_window_size = 3
-moving_window_name = 'bins'
-threshold_histogram_space = [0,-0.9,(4/9)]
-
-# mov_wind(config['bin']['wind_sz'])
-# mov_wind(config['map']['wind_sz'])
-
-utils_obj.mask_advanced(name, operator, val)
-utils_obj.hist_utils(histogram_mats, bin_dims)
-utils_obj.mov_wind(moving_window_name, moving_window_size)
-utils_obj.outliers_hist(threshold_histogram_space)  #fix this SOON!
-utils_obj.block_behavior()
-utils_obj.outliers_map()
+op = [['lt', 'gt'], ['lt', 'gt']]
+val = [[17, -0.01], [10, -1.01]]
+utils_obj.mask_advanced(name, op, val)
+utils_obj.hist_utils(['mat_clip1', 'mat_diff_norm'], (60, 200))
+mov_wind_size = 3
+utils_obj.mov_wind('bins', mov_wind_size, (mov_wind_size + 1)/9)
+utils_obj.outliers([0,-0.9, 4/9])  #fix this SOON!
 
 fig, axes = plt.subplots(nrows = 2, ncols = 2, figsize = (10,8))
 asp_ratio = np.min(utils_obj.bins.shape) / np.max(utils_obj.bins.shape)
@@ -68,7 +56,7 @@ axes[0,0].set_ylabel('relative delta snow depth')
 # Sub2: clipped outliers
 h = axes[0,1].imshow(utils_obj.outliers_hist_space, origin = 'lower',
     extent = (min(xedges), max(xedges), min(yedges), max(yedges)))
-axes[0,1].title.set_text('outlier bins w/mov wind thresh: ' + str(round(threshold_histogram_space[2],2)))
+axes[0,1].title.set_text('outlier bins')
 axes[0,1].set_xlabel('early date depth (m)')
 axes[0,1].set_ylabel('relative delta snow depth')
 
@@ -85,14 +73,14 @@ cbar.set_label('relative diff (%)')
 mat = utils_obj.trim_extent_nan('outliers_map_space')
 mat[~utils_obj.overlap_nan_trim] = 0
 h = axes[1,1].imshow(mat, origin = 'upper')
-axes[1,1].title.set_text('locations of outliers (n=' + str(np.sum(utils_obj.outliers_map_space)) + ')')
+axes[1,1].title.set_text('locations of outliers (n=' + str(np.sum(utils_obj.outliers)) + ')')
 axes[1,1].set_xlabel('snow depth (m)')
 axes[1,1].set_ylabel('relative delta snow depth')
-utils_obj.save_tiff('mat_diff_norm_nans', 'Lakes_06_11_05_01_mat_diff_norm')
-utils_obj.save_tiff('outliers_map_space', 'Lakes_06_11_05_01_outliers')
+# utils_obj.save_tiff('hist_outliers')
 
+# plt.savefig('Lakes_0611_0501_2019_Lakes_4panel_2dhist_clip.png', dpi=180)
 fig.suptitle('San Juoquin change 06/14 to 07/04')
-# plt.savefig('/home/zachuhlmann/projects/basin_masks/SJ_07_04_06_14_2019_hist2d_outliers_wind_sz3_block.png', dpi=180)
+# plt.savefig('/home/zachuhlmann/projects/basin_masks/SJ_07_04_06_14_2019_hist2d_outliers_wind_sz3.png', dpi=180)
 plt.show()
 
 

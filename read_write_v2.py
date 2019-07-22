@@ -2,10 +2,11 @@ import sys
 # sys.path.insert(0, '/home/zachuhlmann/code/code')
 import numpy as np
 import rasterio as rio
-import gdal_CL_utilities as gdalUtils
+import gdal_CL_utilities_v2 as gdalUtils
 from snowav.utils.MidpointNormalize import MidpointNormalize
 import matplotlib.pyplot as plt
 import plotables as pltz
+import time
 
 # from pylab import *
 # from scipy.optimize import curve_fit
@@ -20,7 +21,7 @@ fp_out = '/home/zachuhlmann/projects/basin_masks/'
 
 
 
-utils_obj = gdalUtils.GDAL_python_synergy(fp_d1, fp_d2, fp_out)
+utils_obj = gdalUtils.GDAL_python_synergy(fp_d1_2, fp_d2_2, fp_out)
 utils_obj.clip_extent_overlap()
 utils_obj.make_diff_mat()
 # utils_obj.basic_stats()
@@ -47,9 +48,12 @@ threshold_histogram_space = [0,-0.9,(4/9)]
 
 utils_obj.mask_advanced(name, operator, val)
 utils_obj.hist_utils(histogram_mats, bin_dims)
-utils_obj.mov_wind(moving_window_name, moving_window_size)
-utils_obj.outliers_hist(threshold_histogram_space)  #fix this SOON!
-utils_obj.block_behavior()
+# utils_obj.mov_wind(moving_window_name, moving_window_size)
+start = time.time()
+utils_obj.outliers_hist(threshold_histogram_space, moving_window_name, moving_window_size)  #fix this SOON!
+end = time.time()
+print('outliers hist time: ', end-start)
+utils_obj.block_behavior(3, 0.20)
 utils_obj.outliers_map()
 
 fig, axes = plt.subplots(nrows = 2, ncols = 2, figsize = (10,8))
@@ -88,8 +92,8 @@ h = axes[1,1].imshow(mat, origin = 'upper')
 axes[1,1].title.set_text('locations of outliers (n=' + str(np.sum(utils_obj.outliers_map_space)) + ')')
 axes[1,1].set_xlabel('snow depth (m)')
 axes[1,1].set_ylabel('relative delta snow depth')
-utils_obj.save_tiff('mat_diff_norm_nans', 'Lakes_06_11_05_01_mat_diff_norm')
-utils_obj.save_tiff('outliers_map_space', 'Lakes_06_11_05_01_outliers')
+utils_obj.save_tiff('SJ_multiband', 'flag_gain_block')
+# utils_obj.save_tiff('outliers_map_space', 'Lakes_06_11_05_01_outliers')
 
 fig.suptitle('San Juoquin change 06/14 to 07/04')
 # plt.savefig('/home/zachuhlmann/projects/basin_masks/SJ_07_04_06_14_2019_hist2d_outliers_wind_sz3_block.png', dpi=180)
