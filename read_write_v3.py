@@ -15,50 +15,43 @@ import time
 
 filepath_cfg = '/home/zachuhlmann/code/code/gdal_CL_utilities_config.ini'
 filepath_mcfg = '/home/zachuhlmann/code/code/gdal_CL_utilities_master_config.ini'
-fp_d1 = '/mnt/snowpack/lidar/Lakes/2019/USCALB20190501_SUPERsnow_depth_clipped.tif'
-fp_d2 = '/mnt/snowpack/lidar/Lakes/2019/USCALB20190611_SUPERsnow_depth_clipped.tif'
-fp_d1_2 = '/mnt/snowpack/lidar/SanJoaquin/2019/aso/USCASJ20190614_SUPERsnow_depth_50p0m_agg.tif'
-fp_d2_2 = '/mnt/snowpack/lidar/SanJoaquin/2019/aso/USCASJ20190704_SUPERsnow_depth_50p0m_agg.tif'
-
-fp_out = '/home/zachuhlmann/projects/basin_masks/'
-
-ucfg = get_user_config(filepath_cfg, master_files = filepath_mcfg, checking_later = True)
 
 
-utils_obj = gdalUtils.GDAL_python_synergy(fp_d1_2, fp_d2_2, fp_out)
+ucfg = get_user_config(filepath_cfg, master_files = filepath_mcfg, checking_later = False)
+#checking_later allows not to crash with errors.
+cfg = ucfg.cfg
+
+utils_obj = gdalUtils.GDAL_python_synergy(cfg['files']['file_path_in_date1'], cfg['files']['file_path_in_date2'],
+                                            cfg['files']['file_path_out'])
 utils_obj.clip_extent_overlap()
 utils_obj.make_diff_mat()
-# utils_obj.basic_stats()
-
-# # utils_obj.save_tiff('mat_diff_norm')
-# # utils_obj.replace_qml()
 
 pltz_obj = pltz.Plotables()
 pltz_obj.set_zero_colors(1)
 pltz_obj.marks_colors()
 
 # MAPPING OUTLIERS
-name = ['mat_clip1', 'mat_diff_norm', 'mat_clip2']
-operator = [['lt', 'gt'], ['lt', 'gt']]  #display options
-val = [[17, -0.01], [10, -1.01]]   #display options
-histogram_mats = ['mat_clip1', 'mat_diff_norm']
-bin_dims = (60, 200)
-moving_window_size = 3
-moving_window_name = 'bins'
-threshold_histogram_space = [0,-0.9,(4/9)]
+name = cfg['histogram_outliers']['name']
+action = cfg['histogram_outliers']['action']
+operator = cfg['histogram_outliers']['operator']  #display options
+val = cfg['histogram_outliers']['val']   #display options
+histogram_mats = cfg['histogram_outliers']['histogram_mats']
+bin_dims = cfg['histogram_outliers']['bin_dims']
+threshold_histogram_space = cfg['histogram_outliers']['threshold_histogram_space']
+moving_window_name = cfg['histogram_outliers']['moving_window_name']
+moving_window_size = cfg['histogram_outliers']['moving_window_size']
+block_window_size = cfg['block_behavior']['moving_window_size']
+block_window_threshold = cfg['block_behavior']['neighbor_threshold']
 
-# mov_wind(config['bin']['wind_sz'])
-# mov_wind(config['map']['wind_sz'])
-
-utils_obj.mask_advanced(name, operator, val)
+utils_obj.mask_advanced(name, action, operator, val)
 utils_obj.hist_utils(histogram_mats, bin_dims)
 # utils_obj.mov_wind(moving_window_name, moving_window_size)
 start = time.time()
-utils_obj.outliers_hist(threshold_histogram_space, moving_window_name, moving_window_size)  #fix this SOON!
+utils_obj.outliers_hist(threshold_histogram_space, moving_window_name, moving_window_size)
 end = time.time()
 print('outliers hist time: ', end-start)
-utils_obj.block_behavior(3, 0.20)
-utils_obj.outliers_map()
+utils_obj.flag_blocks(block_window_size, block_window_threshold)
+utils_obj.combine_flags(['flag_gain_block', 'flag_loss_block', 'flag_hist'])
 
 fig, axes = plt.subplots(nrows = 2, ncols = 2, figsize = (10,8))
 asp_ratio = np.min(utils_obj.bins.shape) / np.max(utils_obj.bins.shape)
@@ -80,7 +73,7 @@ axes[0,1].title.set_text('outlier bins w/mov wind thresh: ' + str(round(threshol
 axes[0,1].set_xlabel('early date depth (m)')
 axes[0,1].set_ylabel('relative delta snow depth')
 
-mat = utils_obj.trim_extent_nan('mat_diff_norm')
+mat = utils_obj.trim_extent_nan('mat_diff_norm_nans')
 mat[~utils_obj.overlap_nan_trim] = np.nan
 
 # Sub3: Basin snow map
@@ -90,16 +83,16 @@ cbar = plt.colorbar(h, ax = axes[1,0])
 cbar.set_label('relative diff (%)')
 
 # Sub4: Basin map of clipped snow
-mat = utils_obj.trim_extent_nan('outliers_map_space')
+mat = utils_obj.trim_extent_nan('flag_combined')
 mat[~utils_obj.overlap_nan_trim] = 0
 h = axes[1,1].imshow(mat, origin = 'upper')
-axes[1,1].title.set_text('locations of outliers (n=' + str(np.sum(utils_obj.outliers_map_space)) + ')')
+axes[1,1].title.set_text('locations of outliers (n=' + str(np.sum(utils_obj.flag_combined )) + ')')
 axes[1,1].set_xlabel('snow depth (m)')
 axes[1,1].set_ylabel('relative delta snow depth')
 utils_obj.save_tiff('SJ_multiband2')
 # utils_obj.save_tiff('outliers_map_space', 'Lakes_06_11_05_01_outliers')
 
-fig.suptitle('San Juoquin change 06/14 to 07/04')
+# fig.suptitle('San Juoquin change 06/14 to 07/04')
 # plt.savefig('/home/zachuhlmann/projects/basin_masks/SJ_07_04_06_14_2019_hist2d_outliers_wind_sz3_block.png', dpi=180)
 plt.show()
 

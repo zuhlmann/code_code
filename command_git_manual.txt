@@ -29,6 +29,8 @@ $ job   ----> shows running jobs
 $ top   -----> shows running jobs in more of a task manager style
 $ nohup awsm  <dir> &    ---->this will allow a remote run to detach and remaing running when you ssh out.
 $ inicheck --details 'awsm master' -m smrf awsm
+$ inicheck -f gdal_CL_utilities_config.ini -mf gdal_CL_utilities_master_config.ini -w
+$ sudo mount -a
 
 GIT
 $ git log --abbrev-commit --pretty=oneline    #abbr hash to 7 or more digits, makes pretty
