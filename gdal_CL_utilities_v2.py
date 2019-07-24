@@ -265,7 +265,7 @@ class GDAL_python_synergy():
 
         pct = self.mov_wind(moving_window_name, moving_window_size)
         flag_spatial_outlier = (pct < thresh[2]) & (self.bins>0)
-        flag_bin_ct = self.bins < thresh[0]
+        flag_bin_ct = (self.bins < thresh[0]) & (self.bins > 0)
         flag = (flag_spatial_outlier | flag_bin_ct)
         self.outliers_hist_space = flag
         self.hist_to_map_space()  # unpack hisogram spacconsider adding density option to np.histogram2de outliers to geographic space locations

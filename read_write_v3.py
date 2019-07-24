@@ -46,10 +46,7 @@ block_window_threshold = cfg['block_behavior']['neighbor_threshold']
 utils_obj.mask_advanced(name, action, operator, val)
 utils_obj.hist_utils(histogram_mats, bin_dims)
 # utils_obj.mov_wind(moving_window_name, moving_window_size)
-start = time.time()
 utils_obj.outliers_hist(threshold_histogram_space, moving_window_name, moving_window_size)
-end = time.time()
-print('outliers hist time: ', end-start)
 utils_obj.flag_blocks(block_window_size, block_window_threshold)
 utils_obj.combine_flags(['flag_gain_block', 'flag_loss_block', 'flag_hist'])
 
@@ -89,11 +86,11 @@ h = axes[1,1].imshow(mat, origin = 'upper')
 axes[1,1].title.set_text('locations of outliers (n=' + str(np.sum(utils_obj.flag_combined )) + ')')
 axes[1,1].set_xlabel('snow depth (m)')
 axes[1,1].set_ylabel('relative delta snow depth')
-utils_obj.save_tiff('SJ_multiband2')
+# utils_obj.save_tiff('SJ_multiband2')
 # utils_obj.save_tiff('outliers_map_space', 'Lakes_06_11_05_01_outliers')
 
-# fig.suptitle('San Juoquin change 06/14 to 07/04')
-# plt.savefig('/home/zachuhlmann/projects/basin_masks/SJ_07_04_06_14_2019_hist2d_outliers_wind_sz3_block.png', dpi=180)
+fig.suptitle('San Juoquin change 06/14 to 07/04')
+plt.savefig('/home/zachuhlmann/projects/basin_masks/test.png', dpi=180)
 plt.show()
 
 
