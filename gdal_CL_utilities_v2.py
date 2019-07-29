@@ -4,7 +4,7 @@ import copy
 import math
 from sklearn.feature_extraction import image
 
-class GDAL_python_synergy():
+class multi_array_overlap():
     def __init__(self, fp_d1, fp_d2, fp_out):
         with rio.open(fp_d1) as src:
             self.d1 = src
@@ -17,6 +17,7 @@ class GDAL_python_synergy():
             mat2 = self.d2.read()  #matrix
             self.mat2 = mat2[0]
         self.fp_out = fp_out
+
     def clip_extent_overlap(self):
         """
         finds overlapping extent of two geotiffs. Saves as attributes clipped versions
@@ -33,7 +34,7 @@ class GDAL_python_synergy():
         # minimum overlapping extent
         left_max_bound = max(bounds[0], bounds[4])
         bottom_max_bound = max(bounds[1], bounds[5])
-        right_min_bound = min(bounds[2], bounds[6])
+        right_min_bound =     def clip_extent_overlap(self):min(bounds[2], bounds[6])
         top_min_bound = min(bounds[3], bounds[7])
         self.top_max_bound = top_min_bound
         self.left_max_bound = left_max_bound
@@ -68,22 +69,6 @@ class GDAL_python_synergy():
         mat_clip1[np.isnan(mat_clip1)] = -9999
         mat_clip2[np.isnan(mat_clip2)] = -9999
         self.mat_clip1, self.mat_clip2 = mat_clip1, mat_clip2
-
-    def make_diff_mat(self):
-        """
-        Saves as attribute a normalized difference matrix of the two input tiffs
-        and one with nans (mat_diff_norm, mat_diff_norm_nans).
-        """
-        mat_clip1 = self.mat_clip1.copy()
-        mat_clip2 = self.mat_clip2.copy()
-
-        self.mat_diff = mat_clip2 - mat_clip1
-        mat_clip1[(mat_clip1 < 0.25) & (mat_clip1 != -9999)] = 0.25  # To avoid dividing by zero
-        mat_diff_norm = np.round((self.mat_diff / mat_clip1), 2)
-        self.mat_diff_norm = mat_diff_norm.copy()
-        mat_diff_norm_nans = mat_diff_norm.copy()
-        mat_diff_norm_nans[(mat_clip1 == -9999) | (mat_clip2 == -9999)] = np.nan
-        self.mat_diff_norm_nans = mat_diff_norm_nans.copy()
 
     def mask_advanced(self, name, action, operation, val):
         """
@@ -133,6 +118,26 @@ class GDAL_python_synergy():
         self.lb = round(np.nanpercentile(temp[temp < 0], 50), 3)
         self.ub = round(np.nanpercentile(temp[temp > 0], 50), 3)
 
+
+class multi_temporal_change():
+
+    def make_diff_mat(self):
+        """
+        Saves as attribute a normalized difference matrix of the two input tiffs
+        and one with nans (mat_diff_norm, mat_diff_norm_nans).
+        """
+        mat_clip1 = self.mat_clip1.copy()
+        mat_clip2 = self.mat_clip2.copy()
+
+        self.mat_diff = mat_clip2 - mat_clip1
+        mat_clip1[(mat_clip1 < 0.25) & (mat_clip1 != -9999)] = 0.25  # To avoid dividing by zero
+        mat_diff_norm = np.round((self.mat_diff / mat_clip1), 2)
+        self.mat_diff_norm = mat_diff_norm.copy()
+        mat_diff_norm_nans = mat_diff_norm.copy()
+        mat_diff_norm_nans[(mat_clip1 == -9999) | (mat_clip2 == -9999)] = np.nan
+        self.mat_diff_norm_nans = mat_diff_norm_nans.copy()
+
+class pattern_filters():
     def mov_wind(self, name, size):
         """
          Very computationally slow moving window base function which adjusts window sizes to fit along
@@ -210,15 +215,9 @@ class GDAL_python_synergy():
         pct_temp = np.zeros(mat.shape)
         pct_temp[base_offset: -base_offset, base_offset : -base_offset] = pct
         return(pct_temp)
-    def clip_to_bool(self, name):
-        if isinstance(name, str):
-            mat = getattr(self, name)
-        else:
-            mat = name.copy()
-        mat[self.mov_wind2_clip]
-        return(mat)
 
-    def hist_utils(self, name, nbins):
+class flags():
+    def hist2d_with_bin_locations(self, name, nbins):
         """
         basically creates all components necessary to create historgram using np.histogram2d, and saves map locations
         in x and y list at each histogram space cell.  These are unpacked in hist_to_map_space() method later.  Useful
@@ -264,8 +263,8 @@ class GDAL_python_synergy():
         """
 
         pct = self.mov_wind(moving_window_name, moving_window_size)
-        flag_spatial_outlier = (pct < thresh[2]) & (self.bins>0)
-        flag_bin_ct = (self.bins < thresh[0]) & (self.bins > 0)
+        flag_spatial_outlier = (pct < thresh[0]) & (self.bins > 0)
+        flag_bin_ct = (self.bins < thresh[1]) & (self.bins > 0)  # ability to filter out bin counts lower than thresh but above zero
         flag = (flag_spatial_outlier | flag_bin_ct)
         self.outliers_hist_space = flag
         self.hist_to_map_space()  # unpack hisogram spacconsider adding density option to np.histogram2de outliers to geographic space locations
@@ -285,19 +284,28 @@ class GDAL_python_synergy():
         self.flag_hist = hist_outliers  # unpacked map-space locations of outliers
 
     def flag_blocks(self, moving_window_size, neighbor_threshold):
-        all_loss = 1 * (self.mat_clip1 != 0) & (self.mat_clip2 == 0)  #gained everything
-        all_gain = 1 * (self.mat_clip1 == 0) & (self.mat_clip2 != 0)  #lost everything
+        """
+        Finds spatially continuous blocks or areas of complete melt, or snow where none existed prior.
+        Used to diagnose tiles of extreme, unrealistic change that were potentially processed incorrectly as tiles
+
+        Args:
+            moving_window_size:   size of moving window used to define blocks
+            neighbor_threshold:   proportion of neighbors within moving window (including target cell) that have
+
+
+        """
+        all_loss = 1 * (self.mat_clip1 != 0) & (self.mat_clip2 == 0)  #lost everything
+        all_gain = 1 * (self.mat_clip1 == 0) & (self.mat_clip2 != 0)  #gained everything
         loss_outliers = self.mat_diff_norm < self.lb
         gain_outliers = self.mat_diff_norm > self.ub
         flag_loss_block = all_loss & loss_outliers
         flag_gain_block = all_gain & gain_outliers
         pct = self.mov_wind2(flag_loss_block, 5)
-        flag_loss_block = (pct > neighbor_threshold) & self.overlap_conditional
+        flag_loss_block = (pct > neighbor_threshold) & self.overlap_conditional & all_loss
         self.flag_loss_block = flag_loss_block.copy()
         pct = self.mov_wind2(flag_gain_block, 5)
-        flag_gain_block = (pct >neighbor_threshold) & self.overlap_conditional
+        flag_gain_block = (pct >neighbor_threshold) & self.overlap_conditional & all_gain
         self.flag_gain_block = flag_gain_block.copy()
-        # self.flag_block = self.flag_gain_block
 
     def combine_flags(self, names):
         """
@@ -308,18 +316,15 @@ class GDAL_python_synergy():
             names:      list of strings.  names of flags saved as boolean matrice attributes
         """
         for i in range(len(names)):
-            flagged = getattr(self, names[i])
+            flag = 'flag_' + names[i]
+            flagged = getattr(self, flag)
             if i == 0:
                 flag_combined = flagged
             else:
                 flag_combined = flag_combined | flagged
         self.flag_combined = flag_combined
 
-
-    def __repr__(self):
-            return ("Main items of use are matrices clipped to each other's extent and maps of outlier flags \
-                    Also capable of saving geotiffs and figures")
-
+class visualize():
     def trim_extent_nan(self, name):
         """Used to trim path and rows from array edges with na values.  Returns slimmed down matrix for \
         display purposes and creates attribute of trimmed overlap_nan attribute.
@@ -330,10 +335,6 @@ class GDAL_python_synergy():
             np.array:
             **mat_trimmed_nan**: matrix specified by name trimmed to nan extents on all four edges.
         """
-        # INPUT
-        # name   name of mat to be trimmed to nan extent
-        # OUTPUT
-        # returns trimmed mat
         mat_trimmed_nan = getattr(self, name)
         mat = self.overlap_nan
         nrows, ncols = self.overlap_nan.shape[0], self.overlap_nan.shape[1]
@@ -370,12 +371,13 @@ class GDAL_python_synergy():
         saves matix to geotiff using RasterIO basically. Specify one or more matrices in list of strings
         with attribute names, or leave argv blank to get mat_diff_norm_nans along with all outlier types
         as individual bands in multiband tiff.
+
+        Args:
+            fname: filename including path of where to save
+            argv:  list of strings of attribute names if don't want default
+
         """
-        # INPUT
-        # mat   mat to save
-        # fname  <filename> string
-        # OUTPUT
-        # saves a tiff with <filename>.tif to filepath (self.fp_out)
+
         fn_out = self.fp_out + fname + '.tif'
         if len(argv) > 0:  # if a specific band is specified
             name = argv[0]
@@ -410,3 +412,7 @@ class GDAL_python_synergy():
                     except ValueError:
                         mat_temp = getattr(self, name[id - 1])
                         dst.write_band(id, mat_temp.astype('float32'))
+
+    def __repr__(self):
+            return ("Main items of use are matrices clipped to each other's extent and maps of outlier flags \
+                    Also capable of saving geotiffs and figures")
