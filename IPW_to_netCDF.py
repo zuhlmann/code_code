@@ -14,9 +14,11 @@ import smrf.utils as utils
 # - with a def topo_nc() and an option in base_nc() for topo or snow to determine if time
 # will be added as dimension or not.
 class IPW_to_netCDF():
-    def __init__(self, fd_out, fp_dem):
-        self.fd_out = fd_out
-        self.fp_dem = fp_dem
+    def __init__(self, file_path_in, file_path_out, file_name_out, file_path_coords):
+        self.file_path_in = file_path_in
+        self.file_path_out = file_path_out
+        self.file_name_out = file_name_out
+        self.file_path_coords = file_path_coords
 
     def snow_nc(self):
         ''' Takes directory of ipw files from Hedrick18 and squishes them into a netCDF '''
@@ -31,7 +33,7 @@ class IPW_to_netCDF():
         s['description'] = ['Predicted thickness of the snowcover',
                             'Predicted average snow density',
                             'Predicted specific mass of the snowcover',
-                            'Predicted mass of liquid water in the snoipw.IPW(v2).bands[i].datawcover',
+                            'Predicted mass of liquid water in the snowcover',
                             'Predicted temperature of the surface layer',
                             'Predicted temperature of the lower layer',
                             'Predicted temperature of the snowcover',
@@ -39,10 +41,10 @@ class IPW_to_netCDF():
                             'Predicted percentage of liquid water']
 
         # Tell file where to save and name
-        self.fp_out = os.path.join(self.fd_out, 'snow_WRR18_2day.nc')  #fd = file directory, fp = file path
+        self.nc_file = os.path.join(self.file_path_out, self.file_name_out)
         # Get X,Y and Time saved to nc file
         snow = self.base_nc()
-        for i, v in enumerate(self.fp_ipw):
+        for i, v in enumerate(self.file_path_ipw):
             snow.variables['time'][i] = self.file_num[i]    #file number is actually the hours after WY i.e. 23, 47, etc.
             for i2, v2 in enumerate(s['name']):
                 # snow.createVariable(v, 'f', self.dimensions[:3], chunksizes=(6, 10, 10))
@@ -56,12 +58,13 @@ class IPW_to_netCDF():
                     # snow.variables[v][0,:,:] = self.var_data[v]
                     # print(snow.variables[v][0,:,:].shape)
                     # print(self.var_data[v].shape)
+            print('Adding WY day: ', i)
         self.finish_nc(snow)
 
     def mat_to_nc(self, gcdf_obj):
         ''' Used to take getCDF object and pull numpy 4d array of diff_mat. '''
         # gcdf_obj = object from getCDF with get_diff() run
-        self.fp_out = os.path.join(self.fd_out, 'snow_delta_WRR18_Jan_to_June.nc')  #fd = file directory, fp = file path
+        self.nc_file = os.path.join(self.file_path_out, 'snow_delta_WRR18_Jan_to_June.nc')
         # Get X,Y and Time saved to nc file
         self.idt = gcdf_obj.idt
         print('idt: ', self.idt)
@@ -72,7 +75,7 @@ class IPW_to_netCDF():
             if i == 0:
                 snow_delta.createVariable('snow_delta', 'f', self.dimensions[:3])
                 setattr(snow_delta.variables['snow_delta'], 'units', 'kg m-2')
-                setattr(snow_delta.variables['snow_delta'], 'description', 'difference between model runs in SWE')
+                setattr(snow_delta.variables['WRR18snow_delta'], 'description', 'difference between model runs in SWE')
                 snow_delta.variables['snow_delta'][i,:,:] = gcdf_obj.diff_mat_no_trim[i * 3 + 2,:,:]   #Note i+2 retreives the diff mat
             else:
                 snow_delta.variables['snow_delta'][i,:,:] = gcdf_obj.diff_mat_no_trim[i * 3 + 2,:,:]
@@ -83,15 +86,16 @@ class IPW_to_netCDF():
         ''' adds metadata to nc file.  change awsm version which is hardcoded.  Also add_proj has UTM 13 NAD23 I believe'''
         h = '[{}] Data added or updated'.format(
             datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        file_nc.setncattr_string('last modified', h)
-        file_nc.setncattr_string('AWSM version', '9.15')  #FIX THIS!  as below line commented
-        # snow.setncattr_string('AWSM version', 'myawsm.gitVersion')
+        # file_nc.setncattr_string('last modified', h)
+        # file_nc.setncattr_string('AWSM version', '9.15')  #FIX THIS!  as below line commented
+        # # snow.setncattr_string('AWSM version', 'myawsm.gitVersion')
 
         file_nc.setncattr_string('Conventions', 'CF-1.6')
         file_nc.setncattr_string('institution',
                 'USDA Agricultural Research Service, Northwest Watershed Research Center')
 
-        file_nc.setncattr_string('last_modified', h)
+        # file_nc.setncattr_string('last_modified', h)
+        file_nc.setncattr_string('blank','from Hedrick WRR2018 FILL IN STRING')
         file_nc = add_proj(file_nc, 26711)
         file_nc.sync()
         file_nc.close()
@@ -99,8 +103,8 @@ class IPW_to_netCDF():
     def base_nc(self):
         # this begins netCDF file with x, y and time.  to be used in conjunction with topo or snow
         # to add respective data and close file in snow_nc() for example
-        base_nc = nc.Dataset(self.fp_out, 'w')
-        ts = get_topo_stats(self.fp_dem, filetype='ipw')  # collects all the coordinate data
+        base_nc = nc.Dataset(self.nc_file, 'w')
+        ts = get_topo_stats(self.file_path_coords, filetype='ipw')  # collects all the coordinate data
         x = ts['x']
         y = ts['y']
         # Needs refinement.  Makes compatible with ipw file directory from get_files() and np object from getCDF()
@@ -110,7 +114,6 @@ class IPW_to_netCDF():
             hours_raw = []
             for k in range(len(self.idt)):
                 hours_raw.append(self.idt[k]*24)
-        print('hours raw: ', hours_raw)
         self.hours_raw = hours_raw
         dimensions = ('time', 'y', 'x')
         base_nc.createDimension(dimensions[0], None)
@@ -136,24 +139,23 @@ class IPW_to_netCDF():
         # setattr(base_nc.variables['time'], 'units',
         #         'hours since %s' % 'myawsm.wy_start')
         #fix to function as above comment
-        setattr(base_nc.variables['time'], 'units', 'hours since 2012-10-01 00:00:00')
+        setattr(base_nc.variables['time'], 'units', 'hours since 2015-10-01 00:00:00')
         setattr(base_nc.variables['time'], 'calendar', 'standard')
         setattr(base_nc.variables['time'], 'time_zone', 'UTC')
         # consider putting time calculation into function or check awsm/convertFiles/convertFiles (plus one more?) for functions
         time_w = []
-        dates = [datetime(2012,10,1) + hours_raw * timedelta(hours = 1) for  hours_raw in hours_raw]
+        dates = [datetime(2015,10,1) + hours_raw * timedelta(hours = 1) for  hours_raw in hours_raw]
         time_w[:] = date2num(dates, units = base_nc['time'].units, calendar = base_nc['time'].calendar)
         base_nc.variables['time'][:] = time_w
-        print('base_nc variables time: ', base_nc.variables['time'].shape)
+        print('number of days to be saved: ', base_nc.variables['time'].shape[0])
         base_nc.variables['x'][:] = x
         base_nc.variables['y'][:] = y
         self.dimensions = dimensions   # Prob more elegant way to do this
         return base_nc
 
-    def get_files(self, fp_name):
+    def get_files(self):
         # grabs all files from input path
-        self.fp_name = fp_name
-        file_list = os.listdir(self.fp_name)
+        file_list = os.listdir(self.file_path_in)
 
         # parse for snow.nc
         file_filt = []
@@ -169,12 +171,12 @@ class IPW_to_netCDF():
             file_num.append(int(tmp[1]))
 
         # create filepath to file
-        fp_ipw = [None] * len(file_filt)
+        file_path_ipw = [None] * len(file_filt)
         for i in range(len(file_filt)):
-            fp_ipw[i] = self.fp_name + file_filt[i]
+            file_path_ipw[i] = self.file_path_in + file_filt[i]
 
         self.file_num = file_num
-        self.fp_ipw = fp_ipw
+        self.file_path_ipw = file_path_ipw
 
     def height_to_type(veg_height):
         '''ZRU: this takes veg_height.ipw, reclassifies as 1,2,...N (N = number of distinct veg heights),

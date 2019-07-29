@@ -71,7 +71,7 @@ $ requant -b 8 tau.ipw > tau8.ipw     --> this example requantizations (i.e. goi
 
 ANDREWS WRR
 $ docker images  -->> this will show which docker images are available
-From the cluster (or wherever).
+From the clu83702ster (or wherever).
 In remote session (in this case): 1) mkdir data 2) docker pull usdaarsnwrc/wrr_2018_hedrick (Note: do this in home, not DATA)
 3) docker run -v /home/ubuntu/data:/data -it usdaarsnwrc/wrr_2018_hedrick   --> this will open the docker images
 
