@@ -4,7 +4,7 @@ import copy
 import math
 from sklearn.feature_extraction import image
 
-class multi_array_overlap():
+class MultiArrayOverlap(object):
     def __init__(self, fp_d1, fp_d2, fp_out):
         with rio.open(fp_d1) as src:
             self.d1 = src
@@ -34,7 +34,7 @@ class multi_array_overlap():
         # minimum overlapping extent
         left_max_bound = max(bounds[0], bounds[4])
         bottom_max_bound = max(bounds[1], bounds[5])
-        right_min_bound =     def clip_extent_overlap(self):min(bounds[2], bounds[6])
+        right_min_bound =  min(bounds[2], bounds[6])
         top_min_bound = min(bounds[3], bounds[7])
         self.top_max_bound = top_min_bound
         self.left_max_bound = left_max_bound
@@ -70,6 +70,47 @@ class multi_array_overlap():
         mat_clip2[np.isnan(mat_clip2)] = -9999
         self.mat_clip1, self.mat_clip2 = mat_clip1, mat_clip2
 
+    def trim_extent_nan(self, name):
+        """Used to trim path and rows from array edges with na values.  Returns slimmed down matrix for \
+        display purposes and creates attribute of trimmed overlap_nan attribute.
+
+        Args:
+            name:    matrix name (string) to access matrix attribute
+        Returns:
+            np.array:
+            **mat_trimmed_nan**: matrix specified by name trimmed to nan extents on all four edges.
+        """
+        mat_trimmed_nan = getattr(self, name)
+        mat = self.overlap_nan
+        nrows, ncols = self.overlap_nan.shape[0], self.overlap_nan.shape[1]
+        #Now get indices to clip excess NAs
+        tmp = []
+        for i in range(nrows):
+            if any(mat[i,:] == True):
+                id = i
+                break
+        tmp.append(id)
+        for i in range(nrows-1, 0, -1):  #-1 because of indexing...
+            if any(mat[i,:] == True):
+                id = i
+                break
+        tmp.append(id)
+        for i in range(ncols):
+            if any(mat[:,i] == True):
+                id = i
+                break
+        tmp.append(id)
+        for i in range(ncols-1, 0, -1):  #-1 because of indexing...
+            if any(mat[:,i] == True):
+                id = i
+                break
+        tmp.append(id)
+        idc = tmp.copy()   #idx to clip [min_row, max_row, min_col, max_col]
+        mat_trimmed_nan = mat_trimmed_nan[idc[0]:idc[1],idc[2]:idc[3]]
+        if ~hasattr(self, 'overlap_nan_trim'):
+            self.overlap_nan_trim = self.overlap_nan[idc[0]:idc[1],idc[2]:idc[3]]  # overlap boolean trimmed to nan_extent
+        return mat_trimmed_nan
+
     def mask_advanced(self, name, action, operation, val):
         """
         Adds attributes indicating where no nans present in any input matrices
@@ -80,7 +121,7 @@ class multi_array_overlap():
         operation:  (1x2N)list of strings, operation codes to be performed on each matrix
         val: list of floats (1x2N), matching value pairs to operation comparison operators.
         """
-
+.flag_combined = f
         keys = {'lt':'<', 'gt':'>'}
         shp = getattr(self, name[0]).shape
         overlap_nan = np.ones(shp, dtype = bool)
@@ -118,8 +159,52 @@ class multi_array_overlap():
         self.lb = round(np.nanpercentile(temp[temp < 0], 50), 3)
         self.ub = round(np.nanpercentile(temp[temp > 0], 50), 3)
 
+    def save_tiff(self, name, fname, *argv):
+        """
+        saves matix to geotiff using RasterIO basically. Specify one or more matrices in list of strings
+        with attribute names, or leave argv blank to get mat_diff_norm_nans along with all outlier types
+        as individual bands in multiband tiff.
 
-class multi_temporal_change():
+        Args:
+            fname: filename including path of where to save
+            argv:  list of strings of attribute names if don't want default
+
+        """
+
+        fn_out = self.fp_out + fname + '.tif'
+        if len(argv) > 0:  # if a specific band is specified
+            name = argv[0]
+            dims = getattr(self, name).shape
+            count = 1
+        else:
+            name = ['flag_loss_block', 'flag_gain_block', 'flag_hist', 'mat_diff_norm_nans']
+            dims = getattr(self, name[0]).shape
+            count = len(name)
+
+        meta_new = copy.deepcopy(self.meta1)
+        aff = copy.deepcopy(self.d1.transform)
+        new_aff = rio.Affine(aff.a, aff.b, self.left_max_bound, aff.d, aff.e, self.top_max_bound)
+        meta_new.update({
+            'height':dims[0],
+            'width': dims[1],
+            'transform': new_aff,
+            'count': count})
+
+        if count == 1:
+            with rio.open(fn_out, 'w', **meta_new) as dst:
+                mat_temp = getattr(self,name)
+                try:
+                    dst.write(mat_temp,1)# print(mask.shape)
+                except ValueError:
+                    dst.write(mat_temp.astype('float32'),1)
+        if count > 1:
+            with rio.open(fn_out, 'w', **meta_new) as dst:
+                for id, band in enumerate(name, start = 1):
+                    try:
+                        dst.write_band(id, getattr(self, name[id - 1]))# print(mask.shape)
+                    except ValueError:
+                        mat_temp = getattr(self, name[id - 1])
+                        dst.write_band(id, mat_temp.astype('float32'))
 
     def make_diff_mat(self):
         """
@@ -137,7 +222,9 @@ class multi_temporal_change():
         mat_diff_norm_nans[(mat_clip1 == -9999) | (mat_clip2 == -9999)] = np.nan
         self.mat_diff_norm_nans = mat_diff_norm_nans.copy()
 
-class pattern_filters():
+class PatternFilters(object):
+    def init(self):
+        pass
     def mov_wind(self, name, size):
         """
          Very computationally slow moving window base function which adjusts window sizes to fit along
@@ -216,8 +303,11 @@ class pattern_filters():
         pct_temp[base_offset: -base_offset, base_offset : -base_offset] = pct
         return(pct_temp)
 
-class flags():
-    def hist2d_with_bin_locations(self, name, nbins):
+class Flags(MultiArrayOverlap, PatternFilters):
+    def init(self, fp_d1, fp_d2, fp_out):
+        MultiArrayOverlap.init(self, fp_d1, fp_d2, fp_out)
+
+    def hist2d_with_bins_mapped(self, name, nbins):
         """
         basically creates all components necessary to create historgram using np.histogram2d, and saves map locations
         in x and y list at each histogram space cell.  These are unpacked in hist_to_map_space() method later.  Useful
@@ -324,94 +414,6 @@ class flags():
                 flag_combined = flag_combined | flagged
         self.flag_combined = flag_combined
 
-class visualize():
-    def trim_extent_nan(self, name):
-        """Used to trim path and rows from array edges with na values.  Returns slimmed down matrix for \
-        display purposes and creates attribute of trimmed overlap_nan attribute.
-
-        Args:
-            name:    matrix name (string) to access matrix attribute
-        Returns:
-            np.array:
-            **mat_trimmed_nan**: matrix specified by name trimmed to nan extents on all four edges.
-        """
-        mat_trimmed_nan = getattr(self, name)
-        mat = self.overlap_nan
-        nrows, ncols = self.overlap_nan.shape[0], self.overlap_nan.shape[1]
-        #Now get indices to clip excess NAs
-        tmp = []
-        for i in range(nrows):
-            if any(mat[i,:] == True):
-                id = i
-                break
-        tmp.append(id)
-        for i in range(nrows-1, 0, -1):  #-1 because of indexing...
-            if any(mat[i,:] == True):
-                id = i
-                break
-        tmp.append(id)
-        for i in range(ncols):
-            if any(mat[:,i] == True):
-                id = i
-                break
-        tmp.append(id)
-        for i in range(ncols-1, 0, -1):  #-1 because of indexing...
-            if any(mat[:,i] == True):
-                id = i
-                break
-        tmp.append(id)
-        idc = tmp.copy()   #idx to clip [min_row, max_row, min_col, max_col]
-        mat_trimmed_nan = mat_trimmed_nan[idc[0]:idc[1],idc[2]:idc[3]]
-        if ~hasattr(self, 'overlap_nan_trim'):
-            self.overlap_nan_trim = self.overlap_nan[idc[0]:idc[1],idc[2]:idc[3]]  # overlap boolean trimmed to nan_extent
-        return mat_trimmed_nan
-
-    def save_tiff(self, fname, *argv):
-        """
-        saves matix to geotiff using RasterIO basically. Specify one or more matrices in list of strings
-        with attribute names, or leave argv blank to get mat_diff_norm_nans along with all outlier types
-        as individual bands in multiband tiff.
-
-        Args:
-            fname: filename including path of where to save
-            argv:  list of strings of attribute names if don't want default
-
-        """
-
-        fn_out = self.fp_out + fname + '.tif'
-        if len(argv) > 0:  # if a specific band is specified
-            name = argv[0]
-            dims = getattr(self, name).shape
-            count = 1
-        else:
-            name = ['flag_loss_block', 'flag_gain_block', 'flag_hist', 'mat_diff_norm_nans']
-            dims = getattr(self, name[0]).shape
-            count = len(name)
-
-        meta_new = copy.deepcopy(self.meta1)
-        aff = copy.deepcopy(self.d1.transform)
-        new_aff = rio.Affine(aff.a, aff.b, self.left_max_bound, aff.d, aff.e, self.top_max_bound)
-        meta_new.update({
-            'height':dims[0],
-            'width': dims[1],
-            'transform': new_aff,
-            'count': count})
-
-        if count == 1:
-            with rio.open(fn_out, 'w', **meta_new) as dst:
-                mat_temp = getattr(self,name)
-                try:
-                    dst.write(mat_temp,1)# print(mask.shape)
-                except ValueError:
-                    dst.write(mat_temp.astype('float32'),1)
-        if count > 1:
-            with rio.open(fn_out, 'w', **meta_new) as dst:
-                for id, band in enumerate(name, start = 1):
-                    try:
-                        dst.write_band(id, getattr(self, name[id - 1]))# print(mask.shape)
-                    except ValueError:
-                        mat_temp = getattr(self, name[id - 1])
-                        dst.write_band(id, mat_temp.astype('float32'))
 
     def __repr__(self):
             return ("Main items of use are matrices clipped to each other's extent and maps of outlier flags \
