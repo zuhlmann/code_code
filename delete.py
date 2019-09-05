@@ -1,7 +1,8 @@
+# playing with git
+import numpy as np
 
-from raqc import multi_array
-
-raqc_obj = multi_array.MultiArrayOverlap('/home/zachuhlmann/projects/data/USCATE20190613_SUPERsnow_depth_50p0m_agg_clipped.tif',
-                                '/home/zachuhlmann/projects/data/USCATE20190705_SUPERsnow_depth_50p0m_agg_clipped.tif',
-                                '/home/zachuhlmann/projects/data/')
-raqc_obj.clip_extent_overlap()
+one = np.ones((10,10))
+arr = one * np.random.normal(0,1,(10,10))
+id = np.random.randint(2, size = [10,10])
+arr_check = arr * id
+print(arr_check)
