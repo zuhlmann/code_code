@@ -95,11 +95,16 @@ class Plotables:
         import cmocean
         import copy
 
-        colorsbad = plt.cm.Set1_r(np.linspace(0., 1, 1))
-        colors1 = cmocean.cm.matter_r(np.linspace(0., 1, 127))
-        colors2 = plt.cm.Blues(np.linspace(0, 1, 128))
-        colors = np.vstack((colorsbad,colors1, colors2))
+        #plt.Set1_r is a colormap
+        # np.linspace will pull just one value in this case
+        # colorsbad = plt.cm.Set1_r(np.linspace(0., 1, 1))
+        colorsbad = np.array([0.9, 0.9, 0.9, 1]).reshape((1, 4))
+        print('colorsbad', colorsbad)
+        colors1 = cmocean.cm.matter_r(np.linspace(0., 1, 126))
+        colors2 = plt.cm.Blues(np.linspace(0, 1, 126))
+        colors = np.vstack((colorsbad, colors1, colorsbad, colorsbad, colors2, colorsbad))
         mymap = mcolors.LinearSegmentedColormap.from_list('my_colormap', colors)
+        mymap.set_bad('white', 1)
         cmap = copy.copy(mymap)
         self.cmap_marks = cmap
 
@@ -111,12 +116,11 @@ class Plotables:
 
         if zeros == 0:  # this sets zero to white, BUT stretches with large data value range
             colorsbad = np.array([[0,0,0,0]])
-            # colors1 = cmocean.cm.matter_r(np.linspace(0., 1, 255))
-            colors1 = plt.cm.gist_stern(np.linspace(0., 1, 255))
+            colors1 = cmocean.cm.matter_r(np.linspace(0., 1, 255))
+            # colors1 = plt.cm.gist_stern(np.linspace(0., 1, 255))
             colors = np.vstack((colorsbad, colors1))
             mymap = mcolors.LinearSegmentedColormap.from_list('my_colormap', colors)
             mymap.set_bad('gray', 1)
-            mymap.set_under('white')
         elif zeros == 1:  # does not alter plt.cm colormap, just sets zero to white when vmin specified
             colors = plt.cm.gist_stern(np.linspace(0., 1, 256))
             mymap = mcolors.LinearSegmentedColormap.from_list('my_colormap', colors)

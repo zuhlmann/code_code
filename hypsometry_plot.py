@@ -25,23 +25,35 @@ upper_norm = hyps[col_names[2]]
 lower_norm = hyps[col_names[4]]
 
 
-fig, ax1 = plt.subplots()
+fig, ax = plt.subplots(nrows = 2, ncols = 1, figsize = (8,10))
 
 color = ['r', 'g', 'y', 'b']
 labels = ['raw change(cm)', 'normalized change']
-ax1.set_xlabel('elevation (m)')
-ax1.set_ylabel(labels[0])
-ax1.plot(elevation, upper, 'r-')
-ax1.plot(elevation, lower, 'r-')
-ax1.tick_params(axis = 'y', labelcolor = 'r')
+ax[0].set_xlabel('elevation (m)')
+ax[0].set_ylabel(labels[0])
+ax[0].plot(elevation, upper, 'r-o')
+ax[0].plot(elevation, lower, 'k-o')
+ax[0].tick_params(axis = 'y', labelcolor = 'k')
+ax[0].fill_between(elevation, lower, upper, facecolor = 'b', alpha = 0.5)
+range = max(upper) - min(lower)
+ax[0].set_ylim(min(lower) - range * 0.2, \
+                max(upper) + range * 0.2)
+ax[0].legend(loc = 2)
+ax[0].set_title('Snow Depth Change (cm) USCASJ20170402_to_20170605')
 
-ax2 = ax1.twinx()
-
-ax2.set_ylabel(labels[1])
-ax2.plot(elevation, upper_norm, 'k-')
+ax[1].set_ylabel(labels[1])
+ax[0].set_xlabel('elevation (m)')
+ax[1].plot(elevation, upper_norm, 'r-o')
 # axe2.tick_params(axis = 'y', labelcolor = color[2])
-ax2.plot(elevation, lower_norm, 'k-')
-ax2.tick_params(axis = 'x', labelcolor = 'k')
+ax[1].plot(elevation, lower_norm, 'k-o')
+ax[1].tick_params(axis = 'x', labelcolor = 'k')
+ax[1].fill_between(elevation, lower_norm, upper_norm, facecolor = 'b', alpha = 0.5)
+range = max(upper_norm) - min(lower_norm)
+ax[1].set_ylim(min(lower_norm) - range * 0.2, \
+                max(upper_norm) + range * 0.2)
+ax[1].legend(loc = 2)
+ax[1].set_title('Normalized Snow Depth Change (cm) USCASJ20170402_to_20170605')
+
 
 fig.tight_layout()
-plt.show()
+plt.savefig('USCASJ20170402_to_20170605_Hypsometry.png', dpi = 180)

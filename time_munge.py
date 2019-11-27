@@ -8,8 +8,9 @@ import h5py
 
 class DispTimeSeries:
     """let's see"""
-    def __init__(self, st_date, stop_date):
-        self.h5py_obj = h5py.File('../../projects/learning/brb_z/data/output/brb/devel/wy2017/awsm_paper/data/data4368_6528/smrfOutputs/precip.nc', 'r')
+    def __init__(self, input, st_date, stop_date):
+        # self.h5py_obj = h5py.File('../../projects/learning/brb_z/data/output/brb/devel/wy2017/awsm_paper/data/data4368_6528/smrfOutputs/precip.nc', 'r')
+        self.h5py_obj = h5py.File(input)
         self.data = self.h5py_obj["precip"]
         self.start = st_date  #get from rcdump in terminal
         self.stop = stop_date
