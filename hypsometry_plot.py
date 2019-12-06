@@ -1,6 +1,8 @@
 import pandas as pd
 from matplotlib import pyplot as plt
 
+# this creates a two panel plot: raw and normal change by elevation band'
+
 file_in = '/home/zachuhlmann/projects/data/SanJoaquin/20170402_20170605/USCASJ20170402_20170605_raqc.csv'
 
 
