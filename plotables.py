@@ -98,7 +98,7 @@ class Plotables:
         #plt.Set1_r is a colormap
         # np.linspace will pull just one value in this case
         # colorsbad = plt.cm.Set1_r(np.linspace(0., 1, 1))
-        colorsbad = np.array([0.9, 0.9, 0.9, 1]).reshape((1, 4))
+        # colorsbad = np.array([0.9, 0.9, 0.9, 1]).reshape((1, 4))
         print('colorsbad', colorsbad)
         colors1 = cmocean.cm.matter_r(np.linspace(0., 1, 126))
         colors2 = plt.cm.Blues(np.linspace(0, 1, 126))

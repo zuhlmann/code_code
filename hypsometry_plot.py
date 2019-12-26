@@ -3,14 +3,11 @@ from matplotlib import pyplot as plt
 
 # this creates a two panel plot: raw and normal change by elevation band'
 
-file_in = '/home/zachuhlmann/projects/data/SanJoaquin/20170402_20170605/USCASJ20170402_20170605_raqc.csv'
-
-
 def get_prop(total):
     prop = round(ct/sum(hyps.elevation_count),4)
     return(prop)
 
-hyps = pd.read_csv(file_in)
+hyps = pd.read_csv(self.file_path_out_csv)
 col_names = hyps.columns.tolist()
 
 # prop = [round(ct/sum(hyps.elevation_count),4) for ct in hyps.elevation_count]
@@ -41,7 +38,7 @@ range = max(upper) - min(lower)
 ax[0].set_ylim(min(lower) - range * 0.2, \
                 max(upper) + range * 0.2)
 ax[0].legend(loc = 2)
-ax[0].set_title('Snow Depth Change (cm) USCASJ20170402_to_20170605')
+ax[0].set_title('Snow Depth Change (cm) {}'.format(self.file_name_base))
 
 ax[1].set_ylabel(labels[1])
 ax[0].set_xlabel('elevation (m)')
@@ -54,8 +51,8 @@ range = max(upper_norm) - min(lower_norm)
 ax[1].set_ylim(min(lower_norm) - range * 0.2, \
                 max(upper_norm) + range * 0.2)
 ax[1].legend(loc = 2)
-ax[1].set_title('Normalized Snow Depth Change (cm) USCASJ20170402_to_20170605')
-
+ax[1].set_title('Normalized Snow Depth Change (cm) {0}'.
+                    format(self.file_name_base))
 
 fig.tight_layout()
-plt.savefig('USCASJ20170402_to_20170605_Hypsometry.png', dpi = 180)
+plt.savefig(self.file_path_out_thresholds, dpi = 180)

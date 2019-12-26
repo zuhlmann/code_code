@@ -31,6 +31,7 @@ for pct in pct_list:
         temp_stack = np.concatenate \
             ((temp_stack, np.ndarray.astype(temp_arr, 'uint8')), axis = 0)
 
+
 meta.update({'count':len(pct_list),
             'dtype':'uint8',
             'nodata':255})
